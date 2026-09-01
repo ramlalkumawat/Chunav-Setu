@@ -8,9 +8,9 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 export function Card({ className, padding = "md", children, ...props }: CardProps) {
   const paddingStyles = {
     none: "",
-    sm: "p-3",
-    md: "p-4",
-    lg: "p-5 sm:p-6",
+    sm: "p-3 sm:p-4",
+    md: "p-4 sm:p-5",
+    lg: "p-6 sm:p-7",
   };
 
   return (
@@ -42,16 +42,16 @@ export function CardHeader({
   return (
     <div
       className={cn(
-        "flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#DEE2E6] mb-3.5",
+        "flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3.5 border-b border-[#DEE2E6] mb-4",
         className
       )}
       {...props}
     >
       <div>
-        {title && <h3 className="text-sm font-semibold text-[#212529] tracking-tight">{title}</h3>}
-        {subtitle && <p className="text-xs text-[#6C757D] mt-0.5">{subtitle}</p>}
+        {title && <h3 className="text-base sm:text-lg font-bold text-[#212529] tracking-tight">{title}</h3>}
+        {subtitle && <p className="text-xs sm:text-[14px] text-[#6C757D] mt-0.5">{subtitle}</p>}
       </div>
-      {action && <div className="flex items-center gap-1.5">{action}</div>}
+      {action && <div className="flex items-center gap-2">{action}</div>}
       {children}
     </div>
   );

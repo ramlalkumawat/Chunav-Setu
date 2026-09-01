@@ -36,14 +36,14 @@ export function Badge({
   }
 
   const sizeStyles = {
-    sm: "text-[11px] px-1.5 py-0.5 font-medium leading-none",
-    md: "text-xs px-2 py-0.5 font-medium leading-tight",
+    sm: "text-[12px] px-2 py-0.5 font-semibold leading-tight",
+    md: "text-[13px] px-2.5 py-1 font-semibold leading-tight",
   };
 
   return (
     <span
       className={cn(
-        "inline-flex items-center justify-center rounded-[3px] border capitalize tracking-normal select-none",
+        "inline-flex items-center justify-center rounded-[3px] border capitalize tracking-normal select-none whitespace-nowrap",
         sizeStyles[size],
         badgeStyle,
         className

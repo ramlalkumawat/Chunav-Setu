@@ -4,11 +4,10 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { dbService } from "@/lib/store/data-service";
 import { useAuth } from "@/lib/context/auth-context";
+import { useLanguage } from "@/lib/i18n";
 import { Voter } from "@/lib/types";
 import { Badge } from "@/components/ui/Badge";
 import {
-  Users,
-  Search,
   MapPin,
   ChevronRight,
 } from "lucide-react";
@@ -16,6 +15,7 @@ import {
 export default function VolunteerVotersPage() {
   const router = useRouter();
   const { client, volunteer } = useAuth();
+  const { t } = useLanguage();
   const clientId = client?.id || "client-1";
 
   const [voters, setVoters] = useState<Voter[]>([]);
@@ -42,28 +42,28 @@ export default function VolunteerVotersPage() {
   });
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div>
-        <h1 className="text-base font-bold text-[#212529]">Assigned Electors</h1>
-        <p className="text-[11px] text-[#6C757D]">
+        <h1 className="text-xl font-bold text-[#212529]">{t("votersTitle")}</h1>
+        <p className="text-sm text-[#6C757D] mt-0.5">
           {volunteer?.assigned_booth_name || "Booth 101"} • Tap any elector row to record survey
         </p>
       </div>
 
       {/* Search and Status Pills */}
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         <input
           type="text"
-          placeholder="Search name, EPIC, mobile, address..."
+          placeholder={t("searchVoterPlaceholder")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full h-8 bg-white border border-[#DEE2E6] rounded-[3px] text-xs px-2.5 text-[#212529] placeholder-[#ADB5BD] focus:outline-none focus:border-[#714B67]"
+          className="w-full h-11 bg-white border border-[#DEE2E6] rounded-[4px] text-[15px] px-3.5 text-[#212529] placeholder-[#ADB5BD] focus:outline-none focus:border-[#714B67]"
         />
 
-        <div className="flex items-center gap-1 overflow-x-auto pb-0.5 text-xs">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-sm">
           <button
             onClick={() => setStatusFilter("all")}
-            className={`px-2.5 py-1 rounded-[3px] text-xs font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-[4px] text-xs sm:text-sm font-semibold transition-colors ${
               statusFilter === "all"
                 ? "bg-[#714B67] text-white"
                 : "bg-white border border-[#DEE2E6] text-[#495057] hover:bg-[#F8F9FA]"
@@ -73,17 +73,17 @@ export default function VolunteerVotersPage() {
           </button>
           <button
             onClick={() => setStatusFilter("uncontacted")}
-            className={`px-2.5 py-1 rounded-[3px] text-xs font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-[4px] text-xs sm:text-sm font-semibold transition-colors ${
               statusFilter === "uncontacted"
                 ? "bg-[#714B67] text-white"
                 : "bg-white border border-[#DEE2E6] text-[#495057] hover:bg-[#F8F9FA]"
             }`}
           >
-            Uncontacted ({voters.filter((v) => v.contact_status === "uncontacted").length})
+            {t("uncontacted")} ({voters.filter((v) => v.contact_status === "uncontacted").length})
           </button>
           <button
             onClick={() => setStatusFilter("contacted")}
-            className={`px-2.5 py-1 rounded-[3px] text-xs font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-[4px] text-xs sm:text-sm font-semibold transition-colors ${
               statusFilter === "contacted"
                 ? "bg-[#2E7D32] text-white"
                 : "bg-white border border-[#DEE2E6] text-[#495057] hover:bg-[#F8F9FA]"
@@ -100,40 +100,40 @@ export default function VolunteerVotersPage() {
           <div
             key={voter.id}
             onClick={() => router.push(`/volunteer/survey?voterId=${voter.id}`)}
-            className="p-2.5 hover:bg-[#F8F9FA] active:bg-[#F1ECEF] transition-colors cursor-pointer flex items-center justify-between gap-2"
+            className="p-3.5 hover:bg-[#F8F9FA] active:bg-[#F1ECEF] transition-colors cursor-pointer flex items-center justify-between gap-3"
           >
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5">
-                <h3 className="font-semibold text-xs text-[#212529] truncate">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-bold text-[15px] text-[#212529]">
                   {voter.name}
                 </h3>
-                <span className="text-[10px] font-mono text-[#714B67] font-semibold">
+                <span className="text-xs font-mono text-[#714B67] font-bold">
                   {voter.voter_id_card}
                 </span>
               </div>
 
-              <p className="text-[11px] text-[#6C757D] mt-0.5">
+              <p className="text-xs sm:text-sm text-[#6C757D] mt-0.5 font-medium">
                 {voter.age ? `${voter.age} yrs` : ""} • {voter.gender || ""} • {voter.booth_number}
               </p>
 
               {voter.address && (
-                <p className="text-[10px] text-[#6C757D] truncate mt-0.5 flex items-center gap-1">
-                  <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
+                <p className="text-xs text-[#6C757D] truncate mt-1 flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
                   <span>{voter.address}</span>
                 </p>
               )}
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">
-              <Badge status={voter.contact_status} size="sm" />
-              <ChevronRight className="w-4 h-4 text-[#ADB5BD]" />
+              <Badge status={voter.contact_status} size="md" />
+              <ChevronRight className="w-5 h-5 text-[#ADB5BD]" />
             </div>
           </div>
         ))}
 
         {filteredVoters.length === 0 && (
-          <div className="text-center py-8 text-xs text-[#6C757D]">
-            No voters matching search criteria.
+          <div className="text-center py-12 text-sm text-[#6C757D]">
+            {t("noVotersFound")}
           </div>
         )}
       </div>

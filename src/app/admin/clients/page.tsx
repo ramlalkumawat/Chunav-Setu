@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { dbService } from "@/lib/store/data-service";
 import { useAuth } from "@/lib/context/auth-context";
 import { useToast } from "@/lib/context/toast-context";
+import { useLanguage } from "@/lib/i18n";
 import { Client } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -15,8 +16,6 @@ import { OdooControlPanel } from "@/components/ui/OdooControlPanel";
 import { formatDate } from "@/lib/utils";
 import {
   Plus,
-  Search,
-  Building,
   Edit2,
   Power,
   ArrowUpRight,
@@ -25,6 +24,7 @@ import {
 export default function AdminClientsPage() {
   const { user, switchRole } = useAuth();
   const { success, error: toastError } = useToast();
+  const { t } = useLanguage();
 
   const [clients, setClients] = useState<Client[]>([]);
   const [search, setSearch] = useState("");
@@ -152,26 +152,26 @@ export default function AdminClientsPage() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Odoo Control Panel */}
       <OdooControlPanel
         breadcrumb="System"
-        title="Client Instances"
-        subtitle="Manage candidate accounts, provision new databases, and inspect tenant quotas"
+        title={t("clientsTitle")}
+        subtitle={t("clientsSubtitle")}
         primaryAction={{
           label: "Provision Client",
           onClick: handleOpenCreate,
-          icon: <Plus className="w-3.5 h-3.5" />,
+          icon: <Plus className="w-4 h-4" />,
         }}
         searchPlaceholder="Search client, candidate, constituency..."
         searchValue={search}
         onSearchChange={setSearch}
         filterComponent={
-          <div className="w-full sm:w-48">
+          <div className="w-full sm:w-56">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full h-8 bg-white border border-[#DEE2E6] rounded-[3px] text-xs px-2 text-[#212529] focus:outline-none focus:border-[#714B67]"
+              className="w-full h-10 bg-white border border-[#DEE2E6] rounded-[4px] text-sm px-3 text-[#212529] focus:outline-none focus:border-[#714B67]"
             >
               <option value="all">All Statuses</option>
               <option value="active">Active Only</option>
@@ -181,7 +181,7 @@ export default function AdminClientsPage() {
         }
       />
 
-      {/* Dense Odoo Table */}
+      {/* Readable Odoo Table */}
       <div className="bg-white border border-[#DEE2E6] rounded-[4px] overflow-hidden shadow-none">
         <div className="overflow-x-auto">
           <table className="odoo-table">
@@ -190,57 +190,57 @@ export default function AdminClientsPage() {
                 <th>Tenant Organization</th>
                 <th>Candidate Full Name</th>
                 <th>Campaign & Location</th>
-                <th className="text-center">Volunteers</th>
-                <th className="text-center">Electors</th>
-                <th>Status</th>
+                <th className="text-center">{t("activeVolunteers")}</th>
+                <th className="text-center">{t("electorsCount")}</th>
+                <th>{t("status")}</th>
                 <th>Created</th>
-                <th className="text-right">Actions</th>
+                <th className="text-right">{t("actions")}</th>
               </tr>
             </thead>
             <tbody>
               {filteredClients.map((client) => (
                 <tr key={client.id}>
                   <td>
-                    <p className="font-semibold text-[#212529]">{client.name}</p>
-                    <p className="text-[11px] text-[#6C757D]">{client.email} • {client.mobile}</p>
+                    <p className="font-bold text-[#212529]">{client.name}</p>
+                    <p className="text-xs text-[#6C757D]">{client.email} • {client.mobile}</p>
                   </td>
-                  <td className="text-xs font-medium text-[#212529]">{client.candidate_name}</td>
-                  <td className="text-xs">
-                    <p className="font-medium text-[#714B67]">{client.campaign_name}</p>
-                    <p className="text-[11px] text-[#6C757D]">
+                  <td className="text-[14px] font-semibold text-[#212529]">{client.candidate_name}</td>
+                  <td className="text-[14px]">
+                    <p className="font-semibold text-[#714B67]">{client.campaign_name}</p>
+                    <p className="text-xs text-[#6C757D]">
                       {client.election_type} • {client.location}
                     </p>
                   </td>
-                  <td className="text-center text-xs font-semibold">{client.volunteer_count || 0}</td>
-                  <td className="text-center text-xs font-semibold">{client.voter_count || 0}</td>
+                  <td className="text-center text-[14px] font-bold">{client.volunteer_count || 0}</td>
+                  <td className="text-center text-[14px] font-bold">{client.voter_count || 0}</td>
                   <td>
-                    <Badge status={client.status} size="sm" />
+                    <Badge status={client.status} size="md" />
                   </td>
                   <td className="text-xs text-[#6C757D] font-mono">{formatDate(client.created_at)}</td>
                   <td className="text-right">
-                    <div className="flex items-center justify-end gap-1.5">
+                    <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => switchRole("client_admin", client.id)}
-                        className="p-1 rounded hover:bg-[#F1ECEF] text-[#714B67]"
+                        className="p-1.5 rounded hover:bg-[#F1ECEF] text-[#714B67]"
                         title="Enter Tenant Portal"
                       >
-                        <ArrowUpRight className="w-3.5 h-3.5" />
+                        <ArrowUpRight className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleOpenEdit(client)}
-                        className="p-1 rounded hover:bg-[#F8F9FA] text-[#6C757D] hover:text-[#212529]"
+                        className="p-1.5 rounded hover:bg-[#F8F9FA] text-[#6C757D] hover:text-[#212529]"
                         title="Edit Client"
                       >
-                        <Edit2 className="w-3.5 h-3.5" />
+                        <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setStatusDialogClient(client)}
-                        className={`p-1 rounded hover:bg-[#F8F9FA] ${
+                        className={`p-1.5 rounded hover:bg-[#F8F9FA] ${
                           client.status === "active" ? "text-[#2E7D32]" : "text-[#C62828]"
                         }`}
                         title={client.status === "active" ? "Deactivate Client" : "Activate Client"}
                       >
-                        <Power className="w-3.5 h-3.5" />
+                        <Power className="w-4 h-4" />
                       </button>
                     </div>
                   </td>
@@ -248,7 +248,7 @@ export default function AdminClientsPage() {
               ))}
               {filteredClients.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="text-center py-8 text-xs text-[#6C757D]">
+                  <td colSpan={8} className="text-center py-12 text-sm text-[#6C757D]">
                     No client instances found matching your search.
                   </td>
                 </tr>
@@ -267,17 +267,17 @@ export default function AdminClientsPage() {
         maxWidth="lg"
         footer={
           <>
-            <Button variant="secondary" size="sm" onClick={() => setIsModalOpen(false)}>
-              Discard
+            <Button variant="secondary" size="md" onClick={() => setIsModalOpen(false)}>
+              {t("discard")}
             </Button>
-            <Button size="sm" variant="primary" onClick={handleSaveClient}>
-              {editingClient ? "Save Changes" : "Provision Instance"}
+            <Button size="md" variant="primary" onClick={handleSaveClient}>
+              {editingClient ? t("saveChanges") : "Provision Instance"}
             </Button>
           </>
         }
       >
-        <form onSubmit={handleSaveClient} className="space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <form onSubmit={handleSaveClient} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input
               label="Organization / Committee Name"
               placeholder="Sharma Campaign HQ"
@@ -294,7 +294,7 @@ export default function AdminClientsPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input
               label="Contact Mobile"
               placeholder="+91 98201 12345"
@@ -320,7 +320,7 @@ export default function AdminClientsPage() {
             required
           />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Select
               label="Election Type"
               value={formData.election_type}
@@ -346,8 +346,8 @@ export default function AdminClientsPage() {
             value={formData.status}
             onChange={(e) => setFormData({ ...formData, status: e.target.value as Client["status"] })}
             options={[
-              { value: "active", label: "Active" },
-              { value: "inactive", label: "Inactive / Suspended" },
+              { value: "active", label: t("active") },
+              { value: "inactive", label: t("inactive") },
             ]}
           />
         </form>

@@ -4,9 +4,9 @@ import React, { useState, useEffect } from "react";
 import { dbService } from "@/lib/store/data-service";
 import { useAuth } from "@/lib/context/auth-context";
 import { useToast } from "@/lib/context/toast-context";
+import { useLanguage } from "@/lib/i18n";
 import { exportToCsv } from "@/lib/utils/csv-parser";
 import { Card, CardHeader } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
 import { OdooControlPanel } from "@/components/ui/OdooControlPanel";
 import {
   Download,
@@ -24,6 +24,7 @@ import {
 export default function ReportsPage() {
   const { client } = useAuth();
   const { success } = useToast();
+  const { t } = useLanguage();
   const clientId = client?.id || "client-1";
 
   const [booths, setBooths] = useState<any[]>([]);
@@ -91,35 +92,35 @@ export default function ReportsPage() {
   if (!stats) return null;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Odoo Control Panel */}
       <OdooControlPanel
-        breadcrumb="Campaign"
-        title="Reports & Statistical Analytics"
-        subtitle="Aggregated voter outreach, booth performance metrics, and field cadre productivity"
+        breadcrumb={t("navCampaigns")}
+        title={t("reportsTitle")}
+        subtitle={t("reportsSubtitle")}
         primaryAction={{
           label: "Export Booth Summary",
           onClick: handleExportBoothReport,
-          icon: <Download className="w-3.5 h-3.5" />,
+          icon: <Download className="w-4 h-4" />,
         }}
         secondaryActions={[
           {
             label: "Export Volunteer Report",
             onClick: handleExportVolunteerLeaderboard,
-            icon: <Download className="w-3.5 h-3.5 text-[#6C757D]" />,
+            icon: <Download className="w-4 h-4 text-[#6C757D]" />,
           },
         ]}
       />
 
       {/* Visual Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Booth Progress Chart */}
         <Card padding="md">
           <CardHeader
             title="Enrolled Electors vs Contacted Electors"
             subtitle="Comparison of voter base and outreach coverage per booth"
           />
-          <div className="h-64 w-full mt-1">
+          <div className="h-64 w-full mt-2">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={booths.map((b) => ({
@@ -129,12 +130,12 @@ export default function ReportsPage() {
                 }))}
                 margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
               >
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#212529" }} />
-                <YAxis tick={{ fontSize: 11, fill: "#6C757D" }} />
+                <XAxis dataKey="name" tick={{ fontSize: 13, fill: "#212529" }} />
+                <YAxis tick={{ fontSize: 13, fill: "#6C757D" }} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: "#FFFFFF", borderColor: "#DEE2E6", borderRadius: 4, fontSize: 12, padding: "6px 10px" }}
+                  contentStyle={{ backgroundColor: "#FFFFFF", borderColor: "#DEE2E6", borderRadius: 4, fontSize: 13, padding: "8px 12px" }}
                 />
-                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 4 }} />
+                <Legend wrapperStyle={{ fontSize: 13, paddingTop: 6 }} />
                 <Bar dataKey="total" name="Total Electors" fill="#DEE2E6" radius={[2, 2, 0, 0]} />
                 <Bar dataKey="contacted" name="Contacted" fill="#714B67" radius={[2, 2, 0, 0]} />
               </BarChart>
@@ -148,7 +149,7 @@ export default function ReportsPage() {
             title="Volunteer Field Canvassing Productivity"
             subtitle="Total door visits and surveys logged per volunteer"
           />
-          <div className="h-64 w-full mt-1">
+          <div className="h-64 w-full mt-2">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={volunteers.map((v) => ({
@@ -158,13 +159,13 @@ export default function ReportsPage() {
                 layout="vertical"
                 margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
               >
-                <XAxis type="number" tick={{ fontSize: 11, fill: "#6C757D" }} />
-                <YAxis dataKey="name" type="category" tick={{ fontSize: 11, fill: "#212529", fontWeight: 500 }} width={70} />
+                <XAxis type="number" tick={{ fontSize: 13, fill: "#6C757D" }} />
+                <YAxis dataKey="name" type="category" tick={{ fontSize: 13, fill: "#212529", fontWeight: 600 }} width={80} />
                 <Tooltip
                   formatter={(val: any) => [`${val} door visits`, "Surveys Completed"]}
-                  contentStyle={{ backgroundColor: "#FFFFFF", borderColor: "#DEE2E6", borderRadius: 4, fontSize: 12 }}
+                  contentStyle={{ backgroundColor: "#FFFFFF", borderColor: "#DEE2E6", borderRadius: 4, fontSize: 13 }}
                 />
-                <Bar dataKey="contacts" fill="#2E7D32" radius={[0, 2, 2, 0]} barSize={18} />
+                <Bar dataKey="contacts" fill="#2E7D32" radius={[0, 3, 3, 0]} barSize={22} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -173,40 +174,40 @@ export default function ReportsPage() {
 
       {/* Booth-wise Summary Data Table */}
       <div className="bg-white border border-[#DEE2E6] rounded-[4px] overflow-hidden shadow-none">
-        <div className="px-3.5 py-2.5 border-b border-[#DEE2E6] bg-[#F8F9FA]">
-          <h3 className="text-xs font-semibold text-[#212529] uppercase tracking-wider">
+        <div className="px-5 py-3.5 border-b border-[#DEE2E6] bg-[#F8F9FA]">
+          <h3 className="text-base font-bold text-[#212529]">
             Polling Station Performance Summary
           </h3>
-          <p className="text-[11px] text-[#6C757D]">Aggregated turnout projections and coverage rate</p>
+          <p className="text-sm text-[#6C757D]">Aggregated turnout projections and coverage rate</p>
         </div>
 
         <div className="overflow-x-auto">
           <table className="odoo-table">
             <thead>
               <tr>
-                <th>Booth Number</th>
-                <th>Station Venue</th>
-                <th>Ward / Area</th>
-                <th className="text-center">Enrolled</th>
-                <th className="text-center">Contacted</th>
-                <th className="text-center">Progress %</th>
-                <th className="text-center">Assigned Cadre</th>
+                <th>{t("boothNumber")}</th>
+                <th>{t("pollingStationName")}</th>
+                <th>{t("wardLocality")}</th>
+                <th className="text-center">{t("electorsCount")}</th>
+                <th className="text-center">{t("contactedVoters")}</th>
+                <th className="text-center">{t("coverageRate")}</th>
+                <th className="text-center">{t("staffAssigned")}</th>
               </tr>
             </thead>
             <tbody>
               {booths.map((b) => (
                 <tr key={b.id}>
-                  <td className="font-mono text-xs font-semibold text-[#714B67]">{b.booth_number}</td>
-                  <td className="font-medium text-[#212529]">{b.booth_name}</td>
-                  <td className="text-xs text-[#6C757D]">{b.area_name}</td>
-                  <td className="text-center text-xs font-semibold text-[#212529]">{b.voter_count || 0}</td>
-                  <td className="text-center text-xs font-semibold text-[#2E7D32]">
+                  <td className="font-mono text-sm font-bold text-[#714B67]">{b.booth_number}</td>
+                  <td className="font-bold text-[#212529]">{b.booth_name}</td>
+                  <td className="text-[14px] text-[#6C757D]">{b.area_name}</td>
+                  <td className="text-center text-[14px] font-bold text-[#212529]">{b.voter_count || 0}</td>
+                  <td className="text-center text-[14px] font-bold text-[#2E7D32]">
                     {b.contacted_count || 0}
                   </td>
-                  <td className="text-center text-xs font-bold text-[#212529]">
+                  <td className="text-center text-[14px] font-bold text-[#212529]">
                     {b.progress_percentage}%
                   </td>
-                  <td className="text-center text-xs text-[#495057]">
+                  <td className="text-center text-[14px] text-[#495057]">
                     {b.assigned_volunteers_count || 0} Volunteers
                   </td>
                 </tr>

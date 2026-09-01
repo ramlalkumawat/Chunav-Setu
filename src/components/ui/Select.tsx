@@ -19,9 +19,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
     const selectId = id || (label ? label.toLowerCase().replace(/\s+/g, "-") : undefined);
 
     return (
-      <div className="w-full flex flex-col gap-1">
+      <div className="w-full flex flex-col gap-1.5">
         {label && (
-          <label htmlFor={selectId} className="text-xs font-medium text-[#212529]">
+          <label htmlFor={selectId} className="text-[15px] font-semibold text-[#212529]">
             {label} {props.required && <span className="text-[#C62828]">*</span>}
           </label>
         )}
@@ -30,7 +30,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             ref={ref}
             id={selectId}
             className={cn(
-              "w-full h-9 appearance-none bg-white border border-[#DEE2E6] rounded-[4px] text-[#212529] text-xs px-3 py-1.5 pr-8 transition-colors focus:outline-none focus:border-[#714B67] focus:ring-1 focus:ring-[#714B67] disabled:bg-[#F8F9FA] disabled:text-[#6C757D] disabled:cursor-not-allowed",
+              "w-full h-11 appearance-none bg-white border border-[#DEE2E6] rounded-[4px] text-[#212529] text-[15px] px-3.5 py-2 pr-10 transition-colors focus:outline-none focus:border-[#714B67] focus:ring-1 focus:ring-[#714B67] disabled:bg-[#F8F9FA] disabled:text-[#6C757D] disabled:cursor-not-allowed shadow-none",
               error && "border-[#C62828] focus:border-[#C62828] focus:ring-[#C62828]",
               className
             )}
@@ -44,10 +44,10 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
                 ))
               : children}
           </select>
-          <ChevronDown className="w-3.5 h-3.5 text-[#6C757D] absolute right-2.5 pointer-events-none" />
+          <ChevronDown className="w-4 h-4 text-[#6C757D] absolute right-3.5 pointer-events-none" />
         </div>
-        {error && <p className="text-[11px] text-[#C62828] font-medium">{error}</p>}
-        {!error && helperText && <p className="text-[11px] text-[#6C757D]">{helperText}</p>}
+        {error && <p className="text-[13px] text-[#C62828] font-medium mt-0.5">{error}</p>}
+        {!error && helperText && <p className="text-[13px] text-[#6C757D] mt-0.5">{helperText}</p>}
       </div>
     );
   }

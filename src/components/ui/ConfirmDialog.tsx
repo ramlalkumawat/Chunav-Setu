@@ -61,11 +61,11 @@ export function ConfirmDialog({
         </>
       }
     >
-      <div className="flex items-start gap-3">
-        <div className={`p-2 rounded-[3px] border flex-shrink-0 ${iconColor}`}>
-          <Icon className="w-4 h-4" />
+      <div className="flex items-start gap-3.5">
+        <div className={`p-2.5 rounded-[4px] border flex-shrink-0 ${iconColor}`}>
+          <Icon className="w-5 h-5" />
         </div>
-        <p className="text-xs text-[#6C757D] leading-relaxed mt-0.5">
+        <p className="text-[15px] text-[#495057] leading-relaxed mt-0.5">
           {message}
         </p>
       </div>

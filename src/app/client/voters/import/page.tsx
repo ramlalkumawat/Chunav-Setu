@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { dbService } from "@/lib/store/data-service";
 import { useAuth } from "@/lib/context/auth-context";
 import { useToast } from "@/lib/context/toast-context";
+import { useLanguage } from "@/lib/i18n";
 import { parseVoterCsv, CsvParseResult } from "@/lib/utils/csv-parser";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -17,13 +18,13 @@ import {
   CheckCircle2,
   AlertCircle,
   ArrowLeft,
-  Download,
 } from "lucide-react";
 
 export default function VoterImportPage() {
   const router = useRouter();
   const { client, user } = useAuth();
   const { success, error: toastError } = useToast();
+  const { t } = useLanguage();
   const clientId = client?.id || "client-1";
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -135,34 +136,34 @@ UP/48/281/001421,Duplicate Existing Voter,+91 99999 99999,40,Male,Test,uncontact
   };
 
   return (
-    <div className="space-y-3 max-w-4xl mx-auto">
-      {/* Odoo Control Panel Header */}
-      <div className="bg-white border border-[#DEE2E6] rounded-[4px] px-3.5 py-2.5 flex items-center justify-between shadow-none">
-        <div className="flex items-center gap-2.5">
+    <div className="space-y-4 max-w-4xl mx-auto">
+      {/* Control Panel Header */}
+      <div className="bg-white border border-[#DEE2E6] rounded-[4px] px-5 py-4 flex items-center justify-between shadow-none">
+        <div className="flex items-center gap-3">
           <Link href="/client/voters">
-            <button className="h-8 w-8 flex items-center justify-center rounded-[3px] border border-[#DEE2E6] bg-white hover:bg-[#F8F9FA] text-[#212529]">
-              <ArrowLeft className="w-4 h-4" />
+            <button className="h-10 w-10 flex items-center justify-center rounded-[4px] border border-[#DEE2E6] bg-white hover:bg-[#F8F9FA] text-[#212529]">
+              <ArrowLeft className="w-5 h-5" />
             </button>
           </Link>
           <div>
-            <div className="flex items-center gap-1.5 text-[11px] text-[#6C757D]">
-              <span>Voters</span>
+            <div className="flex items-center gap-2 text-sm text-[#6C757D] font-medium">
+              <span>{t("navVoters")}</span>
               <span>/</span>
-              <span className="font-semibold text-[#212529]">Import Wizard</span>
+              <span className="font-semibold text-[#212529]">{t("importVoters")}</span>
             </div>
-            <h1 className="text-base font-bold text-[#212529]">Batch Voter CSV Import</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-[#212529] tracking-tight">{t("importVoters")}</h1>
           </div>
         </div>
 
         {/* Wizard Steps indicator */}
-        <div className="flex items-center gap-1 text-xs">
-          <span className={`px-2 py-0.5 rounded-[2px] font-medium ${step === 1 ? "bg-[#714B67] text-white" : "bg-[#F8F9FA] text-[#6C757D] border border-[#DEE2E6]"}`}>
+        <div className="flex items-center gap-1.5 text-xs sm:text-sm">
+          <span className={`px-3 py-1 rounded-[3px] font-semibold ${step === 1 ? "bg-[#714B67] text-white" : "bg-[#F8F9FA] text-[#6C757D] border border-[#DEE2E6]"}`}>
             1. Upload
           </span>
-          <span className={`px-2 py-0.5 rounded-[2px] font-medium ${step === 2 ? "bg-[#714B67] text-white" : "bg-[#F8F9FA] text-[#6C757D] border border-[#DEE2E6]"}`}>
+          <span className={`px-3 py-1 rounded-[3px] font-semibold ${step === 2 ? "bg-[#714B67] text-white" : "bg-[#F8F9FA] text-[#6C757D] border border-[#DEE2E6]"}`}>
             2. Validate
           </span>
-          <span className={`px-2 py-0.5 rounded-[2px] font-medium ${step === 3 ? "bg-[#2E7D32] text-white" : "bg-[#F8F9FA] text-[#6C757D] border border-[#DEE2E6]"}`}>
+          <span className={`px-3 py-1 rounded-[3px] font-semibold ${step === 3 ? "bg-[#2E7D32] text-white" : "bg-[#F8F9FA] text-[#6C757D] border border-[#DEE2E6]"}`}>
             3. Summary
           </span>
         </div>
@@ -171,19 +172,19 @@ UP/48/281/001421,Duplicate Existing Voter,+91 99999 99999,40,Male,Test,uncontact
       {/* STEP 1: UPLOAD */}
       {step === 1 && (
         <Card padding="lg">
-          <div className="flex flex-col items-center justify-center border border-dashed border-[#DEE2E6] rounded-[4px] p-8 sm:p-10 bg-[#F8F9FA] text-center">
-            <div className="w-10 h-10 rounded-[4px] bg-[#F1ECEF] text-[#714B67] flex items-center justify-center mb-3">
-              <UploadCloud className="w-5 h-5" />
+          <div className="flex flex-col items-center justify-center border-2 border-dashed border-[#DEE2E6] rounded-[4px] p-10 sm:p-14 bg-[#F8F9FA] text-center">
+            <div className="w-14 h-14 rounded-[4px] bg-[#F1ECEF] text-[#714B67] flex items-center justify-center mb-4">
+              <UploadCloud className="w-7 h-7" />
             </div>
 
-            <h3 className="text-sm font-bold text-[#212529]">
+            <h3 className="text-lg font-bold text-[#212529]">
               Select CSV Electoral Roll
             </h3>
-            <p className="text-xs text-[#6C757D] max-w-md mt-1 mb-4 leading-relaxed">
-              Standard format headers: <code className="text-[#714B67] font-semibold">Voter ID / EPIC</code>, <code className="text-[#714B67] font-semibold">Full Name</code>, <code className="text-[#714B67] font-semibold">Mobile</code>, <code className="text-[#714B67] font-semibold">Age</code>, <code className="text-[#714B67] font-semibold">Gender</code>, <code className="text-[#714B67] font-semibold">Address</code>.
+            <p className="text-sm text-[#6C757D] max-w-md mt-1.5 mb-5 leading-relaxed">
+              Standard format headers: <code className="text-[#714B67] font-bold">Voter ID / EPIC</code>, <code className="text-[#714B67] font-bold">Full Name</code>, <code className="text-[#714B67] font-bold">Mobile</code>, <code className="text-[#714B67] font-bold">Age</code>, <code className="text-[#714B67] font-bold">Gender</code>, <code className="text-[#714B67] font-bold">Address</code>.
             </p>
 
-            <div className="flex flex-wrap items-center justify-center gap-2">
+            <div className="flex flex-wrap items-center justify-center gap-3">
               <label className="cursor-pointer">
                 <input
                   type="file"
@@ -191,9 +192,9 @@ UP/48/281/001421,Duplicate Existing Voter,+91 99999 99999,40,Male,Test,uncontact
                   className="hidden"
                   onChange={handleFileUpload}
                 />
-                <span className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[4px] bg-[#714B67] hover:bg-[#5E3E55] text-white font-medium text-xs transition-colors select-none">
-                  <FileSpreadsheet className="w-3.5 h-3.5" />
-                  <span>Choose File...</span>
+                <span className="inline-flex items-center gap-2 h-11 px-5 rounded-[4px] bg-[#714B67] hover:bg-[#5E3E55] text-white font-bold text-[15px] transition-colors select-none">
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span>Choose CSV File...</span>
                 </span>
               </label>
 
@@ -207,12 +208,11 @@ UP/48/281/001421,Duplicate Existing Voter,+91 99999 99999,40,Male,Test,uncontact
 
       {/* STEP 2: PREVIEW & VALIDATION */}
       {step === 2 && parseResult && (
-        <div className="space-y-3">
-          {/* Target Booth & Area Selection */}
-          <Card padding="sm" className="bg-[#F8F9FA]">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="space-y-4">
+          <Card padding="md" className="bg-[#F8F9FA]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Select
-                label="Assign to Polling Booth"
+                label={t("pollingBooth")}
                 value={selectedBoothId}
                 onChange={(e) => setSelectedBoothId(e.target.value)}
                 options={booths.map((b) => ({
@@ -222,7 +222,7 @@ UP/48/281/001421,Duplicate Existing Voter,+91 99999 99999,40,Male,Test,uncontact
                 required
               />
               <Select
-                label="Assign to Area / Ward"
+                label={t("areaWard")}
                 value={selectedAreaId}
                 onChange={(e) => setSelectedAreaId(e.target.value)}
                 options={areas.map((a) => ({
@@ -235,37 +235,37 @@ UP/48/281/001421,Duplicate Existing Voter,+91 99999 99999,40,Male,Test,uncontact
           </Card>
 
           {/* Validation Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-            <div className="p-2.5 bg-white border border-[#DEE2E6] rounded-[4px]">
-              <p className="text-[11px] text-[#6C757D]">Total Rows</p>
-              <p className="text-lg font-bold text-[#212529] mt-0.5">{parseResult.totalRows}</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+            <div className="p-3.5 bg-white border border-[#DEE2E6] rounded-[4px]">
+              <p className="text-xs font-semibold text-[#6C757D]">Total Rows</p>
+              <p className="text-2xl font-bold text-[#212529] mt-0.5">{parseResult.totalRows}</p>
             </div>
-            <div className="p-2.5 bg-[#E8F5E9] border border-[#C8E6C9] rounded-[4px]">
-              <p className="text-[11px] text-[#2E7D32]">Valid Electors</p>
-              <p className="text-lg font-bold text-[#2E7D32] mt-0.5">{parseResult.validRows.length}</p>
+            <div className="p-3.5 bg-[#E8F5E9] border border-[#C8E6C9] rounded-[4px]">
+              <p className="text-xs font-semibold text-[#2E7D32]">Valid Electors</p>
+              <p className="text-2xl font-bold text-[#2E7D32] mt-0.5">{parseResult.validRows.length}</p>
             </div>
-            <div className="p-2.5 bg-[#FFF3E0] border border-[#FFE0B2] rounded-[4px]">
-              <p className="text-[11px] text-[#E65100]">Duplicates Found</p>
-              <p className="text-lg font-bold text-[#E65100] mt-0.5">{parseResult.duplicates}</p>
+            <div className="p-3.5 bg-[#FFF3E0] border border-[#FFE0B2] rounded-[4px]">
+              <p className="text-xs font-semibold text-[#E65100]">Duplicates Found</p>
+              <p className="text-2xl font-bold text-[#E65100] mt-0.5">{parseResult.duplicates}</p>
             </div>
-            <div className="p-2.5 bg-[#FFEBEE] border border-[#FFCDD2] rounded-[4px]">
-              <p className="text-[11px] text-[#C62828]">Invalid Rows</p>
-              <p className="text-lg font-bold text-[#C62828] mt-0.5">{parseResult.invalidRows.length}</p>
+            <div className="p-3.5 bg-[#FFEBEE] border border-[#FFCDD2] rounded-[4px]">
+              <p className="text-xs font-semibold text-[#C62828]">Invalid Rows</p>
+              <p className="text-2xl font-bold text-[#C62828] mt-0.5">{parseResult.invalidRows.length}</p>
             </div>
           </div>
 
           {/* Preview Table */}
           <div className="bg-white border border-[#DEE2E6] rounded-[4px] overflow-hidden">
-            <div className="px-3.5 py-2 border-b border-[#DEE2E6] flex items-center justify-between bg-[#F8F9FA]">
-              <h3 className="text-xs font-semibold text-[#212529]">
+            <div className="px-4 py-3 border-b border-[#DEE2E6] flex items-center justify-between bg-[#F8F9FA]">
+              <h3 className="text-sm font-bold text-[#212529]">
                 Preview: {fileName}
               </h3>
-              <Badge variant={parseResult.invalidRows.length === 0 ? "success" : "warning"} size="sm">
+              <Badge variant={parseResult.invalidRows.length === 0 ? "success" : "warning"} size="md">
                 {parseResult.validRows.length} Valid / {parseResult.totalRows} Total
               </Badge>
             </div>
 
-            <div className="overflow-x-auto max-h-80">
+            <div className="overflow-x-auto max-h-96">
               <table className="odoo-table">
                 <thead>
                   <tr>
@@ -279,27 +279,27 @@ UP/48/281/001421,Duplicate Existing Voter,+91 99999 99999,40,Male,Test,uncontact
                 </thead>
                 <tbody>
                   {[...parseResult.validRows, ...parseResult.invalidRows].slice(0, 15).map((row, idx) => (
-                    <tr key={idx} className={row.isValid ? "" : "bg-[#FFEBEE]/30"}>
+                    <tr key={idx} className={row.isValid ? "" : "bg-[#FFEBEE]/40"}>
                       <td>
                         {row.isValid ? (
-                          <span className="text-[11px] font-medium text-[#2E7D32] flex items-center gap-1">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-[#2E7D32]" />
+                          <span className="text-xs font-semibold text-[#2E7D32] flex items-center gap-1">
+                            <CheckCircle2 className="w-4 h-4 text-[#2E7D32]" />
                             Valid
                           </span>
                         ) : (
-                          <span className="text-[11px] font-medium text-[#C62828] flex items-center gap-1">
-                            <AlertCircle className="w-3.5 h-3.5 text-[#C62828]" />
+                          <span className="text-xs font-semibold text-[#C62828] flex items-center gap-1">
+                            <AlertCircle className="w-4 h-4 text-[#C62828]" />
                             Invalid
                           </span>
                         )}
                       </td>
-                      <td className="font-mono text-xs font-semibold text-[#714B67]">
+                      <td className="font-mono text-sm font-bold text-[#714B67]">
                         {row.voter_id_card || "MISSING"}
                       </td>
-                      <td className="font-medium text-[#212529]">{row.name || "MISSING"}</td>
-                      <td className="font-mono text-xs text-[#6C757D]">{row.mobile || "—"}</td>
-                      <td className="text-xs text-[#495057]">{row.age || "—"} • {row.gender || "—"}</td>
-                      <td className="text-xs text-[#C62828]">
+                      <td className="font-bold text-[#212529]">{row.name || "MISSING"}</td>
+                      <td className="font-mono text-[14px] text-[#6C757D]">{row.mobile || "—"}</td>
+                      <td className="text-[14px] text-[#495057]">{row.age || "—"} • {row.gender || "—"}</td>
+                      <td className="text-xs text-[#C62828] font-medium">
                         {row.errors.join(", ") || "None"}
                       </td>
                     </tr>
@@ -308,12 +308,12 @@ UP/48/281/001421,Duplicate Existing Voter,+91 99999 99999,40,Male,Test,uncontact
               </table>
             </div>
 
-            <div className="px-3.5 py-2.5 border-t border-[#DEE2E6] bg-[#F8F9FA] flex items-center justify-between">
-              <Button variant="secondary" size="sm" onClick={() => setStep(1)}>
+            <div className="px-5 py-3.5 border-t border-[#DEE2E6] bg-[#F8F9FA] flex items-center justify-between">
+              <Button variant="secondary" size="md" onClick={() => setStep(1)}>
                 Change File
               </Button>
               <Button
-                size="sm"
+                size="md"
                 variant="primary"
                 onClick={handleConfirmImport}
                 isLoading={isImporting}
@@ -328,38 +328,38 @@ UP/48/281/001421,Duplicate Existing Voter,+91 99999 99999,40,Male,Test,uncontact
 
       {/* STEP 3: RESULT SUMMARY */}
       {step === 3 && importSummary && (
-        <Card padding="lg" className="text-center py-8">
-          <div className="w-10 h-10 rounded-[4px] bg-[#E8F5E9] text-[#2E7D32] flex items-center justify-center mx-auto mb-3">
-            <CheckCircle2 className="w-6 h-6" />
+        <Card padding="lg" className="text-center py-10">
+          <div className="w-14 h-14 rounded-[4px] bg-[#E8F5E9] text-[#2E7D32] flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 className="w-8 h-8" />
           </div>
 
-          <h2 className="text-base font-bold text-[#212529]">
+          <h2 className="text-xl font-bold text-[#212529]">
             Batch Import Completed
           </h2>
-          <p className="text-xs text-[#6C757D] mt-0.5 max-w-md mx-auto">
+          <p className="text-sm text-[#6C757D] mt-1 max-w-md mx-auto">
             Voter records have been indexed and assigned to your polling booth.
           </p>
 
-          <div className="mt-4 max-w-sm mx-auto grid grid-cols-2 gap-2 text-left text-xs">
-            <div className="p-2.5 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[3px]">
-              <p className="text-[11px] text-[#6C757D]">Imported:</p>
-              <p className="text-base font-bold text-[#2E7D32] mt-0.5">{importSummary.inserted}</p>
+          <div className="mt-6 max-w-sm mx-auto grid grid-cols-2 gap-3 text-left">
+            <div className="p-3.5 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[4px]">
+              <p className="text-xs text-[#6C757D] font-semibold">Imported:</p>
+              <p className="text-xl font-bold text-[#2E7D32] mt-0.5">{importSummary.inserted}</p>
             </div>
-            <div className="p-2.5 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[3px]">
-              <p className="text-[11px] text-[#6C757D]">Duplicates Skipped:</p>
-              <p className="text-base font-bold text-[#E65100] mt-0.5">{importSummary.skipped}</p>
+            <div className="p-3.5 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[4px]">
+              <p className="text-xs text-[#6C757D] font-semibold">Duplicates Skipped:</p>
+              <p className="text-xl font-bold text-[#E65100] mt-0.5">{importSummary.skipped}</p>
             </div>
           </div>
 
-          <div className="mt-6 flex justify-center gap-2">
+          <div className="mt-8 flex justify-center gap-3">
             <Link href="/client/voters">
-              <Button size="sm" variant="primary">
-                Open Voter Directory
+              <Button size="md" variant="primary">
+                {t("votersTitle")}
               </Button>
             </Link>
             <Button
               variant="secondary"
-              size="sm"
+              size="md"
               onClick={() => {
                 setStep(1);
                 setParseResult(null);

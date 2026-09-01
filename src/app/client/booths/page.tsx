@@ -4,8 +4,8 @@ import React, { useState, useEffect } from "react";
 import { dbService } from "@/lib/store/data-service";
 import { useAuth } from "@/lib/context/auth-context";
 import { useToast } from "@/lib/context/toast-context";
+import { useLanguage } from "@/lib/i18n";
 import { Booth, Area, Volunteer } from "@/lib/types";
-import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -13,26 +13,22 @@ import { Modal } from "@/components/ui/Modal";
 import { Badge } from "@/components/ui/Badge";
 import { OdooControlPanel } from "@/components/ui/OdooControlPanel";
 import {
-  Building,
   Plus,
-  Search,
   UserCheck,
-  MapPin,
   Edit2,
   Eye,
-  Map,
 } from "lucide-react";
 
 export default function BoothsPage() {
   const { client, user } = useAuth();
   const { success, error: toastError } = useToast();
+  const { t } = useLanguage();
   const clientId = client?.id || "client-1";
 
   const [booths, setBooths] = useState<Booth[]>([]);
   const [areas, setAreas] = useState<Area[]>([]);
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [search, setSearch] = useState("");
-  const [viewMode, setViewMode] = useState<"table" | "grid">("table");
 
   // Modals
   const [isBoothModalOpen, setIsBoothModalOpen] = useState(false);
@@ -185,22 +181,22 @@ export default function BoothsPage() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Odoo Control Panel */}
       <OdooControlPanel
-        breadcrumb="Campaign"
-        title="Polling Booths & Wards"
-        subtitle="Manage polling stations, volunteer allocations, and turnout targets"
+        breadcrumb={t("navCampaigns")}
+        title={t("boothsTitle")}
+        subtitle={t("boothsSubtitle")}
         primaryAction={{
-          label: "Add Booth",
+          label: t("addBooth"),
           onClick: handleOpenAddBooth,
-          icon: <Plus className="w-3.5 h-3.5" />,
+          icon: <Plus className="w-4 h-4" />,
         }}
         secondaryActions={[
           {
             label: "Add Ward / Area",
             onClick: () => setIsAreaModalOpen(true),
-            icon: <Plus className="w-3.5 h-3.5 text-[#6C757D]" />,
+            icon: <Plus className="w-4 h-4 text-[#6C757D]" />,
           },
         ]}
         searchPlaceholder="Search booth number, station, ward..."
@@ -208,55 +204,55 @@ export default function BoothsPage() {
         onSearchChange={setSearch}
       />
 
-      {/* Dense Odoo Table for Polling Booths */}
+      {/* Readable Odoo Table for Polling Booths */}
       <div className="bg-white border border-[#DEE2E6] rounded-[4px] overflow-hidden shadow-none">
         <div className="overflow-x-auto">
           <table className="odoo-table">
             <thead>
               <tr>
-                <th>Booth ID</th>
-                <th>Polling Station Name</th>
-                <th>Ward / Locality</th>
-                <th>Electors Enrolled</th>
-                <th>Canvassed (%)</th>
-                <th>Staff Assigned</th>
-                <th className="text-right">Actions</th>
+                <th>{t("boothNumber")}</th>
+                <th>{t("pollingStationName")}</th>
+                <th>{t("wardLocality")}</th>
+                <th>{t("electorsCount")}</th>
+                <th>{t("coverageRate")}</th>
+                <th>{t("staffAssigned")}</th>
+                <th className="text-right">{t("actions")}</th>
               </tr>
             </thead>
             <tbody>
               {filteredBooths.map((booth) => (
                 <tr key={booth.id}>
-                  <td className="font-mono text-xs font-semibold text-[#714B67]">
+                  <td className="font-mono text-sm font-bold text-[#714B67]">
                     {booth.booth_number}
                   </td>
                   <td>
-                    <p className="font-semibold text-[#212529]">{booth.booth_name}</p>
+                    <p className="font-bold text-[#212529]">{booth.booth_name}</p>
                     {booth.location_address && (
-                      <p className="text-[11px] text-[#6C757D] truncate max-w-xs">{booth.location_address}</p>
+                      <p className="text-[13px] text-[#6C757D] truncate max-w-xs">{booth.location_address}</p>
                     )}
                   </td>
-                  <td className="text-xs text-[#495057]">
+                  <td className="text-[14px] text-[#495057]">
                     {booth.area_name || <span className="text-[#ADB5BD]">Unassigned</span>}
                   </td>
-                  <td className="text-xs font-semibold text-[#212529]">
+                  <td className="text-[14px] font-bold text-[#212529]">
                     {booth.voter_count || 0}
                   </td>
                   <td>
-                    <div className="flex items-center gap-2">
-                      <div className="w-24 h-2 bg-[#E9ECEF] rounded-[2px] overflow-hidden">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-28 h-2.5 bg-[#E9ECEF] rounded-[3px] overflow-hidden">
                         <div
-                          className="h-full bg-[#714B67] rounded-[2px]"
+                          className="h-full bg-[#714B67] rounded-[3px]"
                           style={{ width: `${booth.progress_percentage}%` }}
                         />
                       </div>
-                      <span className="text-xs font-semibold text-[#212529]">
+                      <span className="text-[14px] font-bold text-[#212529]">
                         {booth.progress_percentage}%
                       </span>
                     </div>
                   </td>
-                  <td className="text-xs text-[#495057]">
-                    <span className="inline-flex items-center gap-1 font-medium">
-                      <UserCheck className="w-3.5 h-3.5 text-[#2E7D32]" />
+                  <td className="text-[14px] text-[#495057]">
+                    <span className="inline-flex items-center gap-1.5 font-semibold">
+                      <UserCheck className="w-4 h-4 text-[#2E7D32]" />
                       {booth.assigned_volunteers_count || 0}
                     </span>
                   </td>
@@ -264,17 +260,17 @@ export default function BoothsPage() {
                     <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => setViewingBooth(booth)}
-                        className="p-1 rounded hover:bg-[#F8F9FA] text-[#6C757D] hover:text-[#212529]"
+                        className="p-1.5 rounded hover:bg-[#F8F9FA] text-[#6C757D] hover:text-[#212529]"
                         title="View Details"
                       >
-                        <Eye className="w-3.5 h-3.5" />
+                        <Eye className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleOpenEditBooth(booth)}
-                        className="p-1 rounded hover:bg-[#F8F9FA] text-[#6C757D] hover:text-[#212529]"
+                        className="p-1.5 rounded hover:bg-[#F8F9FA] text-[#6C757D] hover:text-[#212529]"
                         title="Edit Booth"
                       >
-                        <Edit2 className="w-3.5 h-3.5" />
+                        <Edit2 className="w-4 h-4" />
                       </button>
                     </div>
                   </td>
@@ -282,7 +278,7 @@ export default function BoothsPage() {
               ))}
               {filteredBooths.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-8 text-xs text-[#6C757D]">
+                  <td colSpan={7} className="text-center py-12 text-sm text-[#6C757D]">
                     No polling booths found matching your query.
                   </td>
                 </tr>
@@ -296,37 +292,37 @@ export default function BoothsPage() {
       <Modal
         isOpen={isBoothModalOpen}
         onClose={() => setIsBoothModalOpen(false)}
-        title={editingBooth ? `Edit Polling Station: ${editingBooth.booth_number}` : "New Polling Booth"}
+        title={editingBooth ? `Edit Polling Station: ${editingBooth.booth_number}` : t("addBooth")}
         subtitle="Campaign Polling Station Setup"
         maxWidth="md"
         footer={
           <>
-            <Button variant="secondary" size="sm" onClick={() => setIsBoothModalOpen(false)}>
-              Discard
+            <Button variant="secondary" size="md" onClick={() => setIsBoothModalOpen(false)}>
+              {t("discard")}
             </Button>
-            <Button size="sm" variant="primary" onClick={handleSaveBooth}>
-              {editingBooth ? "Save Changes" : "Create Booth"}
+            <Button size="md" variant="primary" onClick={handleSaveBooth}>
+              {editingBooth ? t("saveChanges") : t("save")}
             </Button>
           </>
         }
       >
-        <form onSubmit={handleSaveBooth} className="space-y-3">
+        <form onSubmit={handleSaveBooth} className="space-y-4">
           <Input
-            label="Booth Number / Identifier"
+            label={t("boothNumber")}
             placeholder="e.g. Booth 105"
             value={boothForm.booth_number}
             onChange={(e) => setBoothForm({ ...boothForm, booth_number: e.target.value })}
             required
           />
           <Input
-            label="Station Venue / Building Name"
+            label={t("pollingStationName")}
             placeholder="e.g. Govt Primary School Room 2"
             value={boothForm.booth_name}
             onChange={(e) => setBoothForm({ ...boothForm, booth_name: e.target.value })}
             required
           />
           <Select
-            label="Assigned Ward / Locality"
+            label={t("wardLocality")}
             value={boothForm.area_id}
             onChange={(e) => setBoothForm({ ...boothForm, area_id: e.target.value })}
             options={areas.map((a) => ({ value: a.id, label: `${a.name} (${a.ward_number || ""})` }))}
@@ -355,16 +351,16 @@ export default function BoothsPage() {
         maxWidth="sm"
         footer={
           <>
-            <Button variant="secondary" size="sm" onClick={() => setIsAreaModalOpen(false)}>
-              Discard
+            <Button variant="secondary" size="md" onClick={() => setIsAreaModalOpen(false)}>
+              {t("discard")}
             </Button>
-            <Button size="sm" variant="primary" onClick={handleSaveArea}>
-              Save Area
+            <Button size="md" variant="primary" onClick={handleSaveArea}>
+              {t("save")}
             </Button>
           </>
         }
       >
-        <form onSubmit={handleSaveArea} className="space-y-3">
+        <form onSubmit={handleSaveArea} className="space-y-4">
           <Input
             label="Ward / Area Name"
             placeholder="e.g. Civil Lines North"
@@ -396,44 +392,44 @@ export default function BoothsPage() {
           subtitle={`Ward: ${viewingBooth.area_name || "Unassigned"}`}
           maxWidth="md"
           footer={
-            <Button size="sm" variant="secondary" onClick={() => setViewingBooth(null)}>
-              Close
+            <Button size="md" variant="secondary" onClick={() => setViewingBooth(null)}>
+              {t("back")}
             </Button>
           }
         >
-          <div className="space-y-3 text-xs">
-            <div className="grid grid-cols-3 gap-2">
-              <div className="p-2.5 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[3px]">
-                <p className="text-[11px] text-[#6C757D]">Enrolled Voters</p>
-                <p className="text-base font-bold text-[#212529] mt-0.5">{viewingBooth.voter_count || 0}</p>
+          <div className="space-y-4 text-[15px]">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-3.5 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[4px]">
+                <p className="text-xs font-semibold text-[#6C757D]">Enrolled</p>
+                <p className="text-xl font-bold text-[#212529] mt-0.5">{viewingBooth.voter_count || 0}</p>
               </div>
-              <div className="p-2.5 bg-[#E8F5E9] border border-[#C8E6C9] rounded-[3px]">
-                <p className="text-[11px] text-[#2E7D32]">Contacted</p>
-                <p className="text-base font-bold text-[#2E7D32] mt-0.5">{viewingBooth.contacted_count || 0}</p>
+              <div className="p-3.5 bg-[#E8F5E9] border border-[#C8E6C9] rounded-[4px]">
+                <p className="text-xs font-semibold text-[#2E7D32]">Contacted</p>
+                <p className="text-xl font-bold text-[#2E7D32] mt-0.5">{viewingBooth.contacted_count || 0}</p>
               </div>
-              <div className="p-2.5 bg-[#F1ECEF] border border-[#D9CAD5] rounded-[3px]">
-                <p className="text-[11px] text-[#714B67]">Coverage</p>
-                <p className="text-base font-bold text-[#714B67] mt-0.5">{viewingBooth.progress_percentage}%</p>
+              <div className="p-3.5 bg-[#F1ECEF] border border-[#D9CAD5] rounded-[4px]">
+                <p className="text-xs font-semibold text-[#714B67]">Coverage</p>
+                <p className="text-xl font-bold text-[#714B67] mt-0.5">{viewingBooth.progress_percentage}%</p>
               </div>
             </div>
 
             <div className="pt-2">
-              <h4 className="font-semibold text-[#212529] mb-1.5 text-xs">Assigned Field Volunteers</h4>
-              <div className="space-y-1.5">
+              <h4 className="font-bold text-[#212529] mb-2 text-sm">Assigned Field Volunteers</h4>
+              <div className="space-y-2">
                 {viewingBooth.assigned_volunteers?.map((vol) => (
                   <div
                     key={vol.id}
-                    className="p-2 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[3px] flex items-center justify-between text-xs"
+                    className="p-3 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[4px] flex items-center justify-between text-sm"
                   >
                     <div>
-                      <p className="font-semibold text-[#212529]">{vol.name}</p>
-                      <p className="text-[#6C757D] font-mono text-[11px]">{vol.mobile}</p>
+                      <p className="font-bold text-[#212529]">{vol.name}</p>
+                      <p className="text-[#6C757D] font-mono text-xs mt-0.5">{vol.mobile}</p>
                     </div>
-                    <Badge status={vol.status} size="sm" />
+                    <Badge status={vol.status} size="md" />
                   </div>
                 ))}
                 {(!viewingBooth.assigned_volunteers || viewingBooth.assigned_volunteers.length === 0) && (
-                  <p className="text-xs text-[#6C757D] italic py-2">
+                  <p className="text-sm text-[#6C757D] italic py-3">
                     No field volunteers currently assigned to this booth.
                   </p>
                 )}

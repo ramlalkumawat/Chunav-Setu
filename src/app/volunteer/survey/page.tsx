@@ -5,8 +5,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { dbService } from "@/lib/store/data-service";
 import { useAuth } from "@/lib/context/auth-context";
 import { useToast } from "@/lib/context/toast-context";
+import { useLanguage } from "@/lib/i18n";
 import { Voter } from "@/lib/types";
-import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
@@ -28,6 +28,7 @@ function SurveyContent() {
 
   const { client, volunteer, user } = useAuth();
   const { success, error: toastError } = useToast();
+  const { t } = useLanguage();
   const clientId = client?.id || "client-1";
 
   const [voters, setVoters] = useState<Voter[]>([]);
@@ -121,30 +122,30 @@ function SurveyContent() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         <button
           onClick={() => router.back()}
-          className="h-8 w-8 flex items-center justify-center rounded-[3px] border border-[#DEE2E6] bg-white text-[#212529]"
+          className="h-10 w-10 flex items-center justify-center rounded-[4px] border border-[#DEE2E6] bg-white text-[#212529]"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="w-5 h-5" />
         </button>
         <div>
-          <h1 className="text-base font-bold text-[#212529]">Field Canvassing Survey</h1>
-          <p className="text-[11px] text-[#6C757D]">Record door-to-door feedback & schedule follow-ups</p>
+          <h1 className="text-xl font-bold text-[#212529]">{t("surveyTitle")}</h1>
+          <p className="text-[13px] text-[#6C757D]">{t("surveySubtitle")}</p>
         </div>
       </div>
 
       {/* Voter Selector Dropdown */}
-      <div className="bg-white border border-[#DEE2E6] rounded-[4px] p-3 shadow-none">
-        <label className="text-xs font-semibold text-[#212529] block mb-1">
-          Select Elector for Canvassing
+      <div className="bg-white border border-[#DEE2E6] rounded-[4px] p-4 shadow-none">
+        <label className="text-[15px] font-bold text-[#212529] block mb-2">
+          {t("voterDetails")}
         </label>
         <select
           value={selectedVoterId}
           onChange={(e) => handleSelectVoter(e.target.value)}
-          className="w-full bg-white border border-[#DEE2E6] rounded-[3px] p-2 text-xs font-medium text-[#212529] focus:outline-none focus:border-[#714B67]"
+          className="w-full h-11 bg-white border border-[#DEE2E6] rounded-[4px] px-3 text-[15px] font-medium text-[#212529] focus:outline-none focus:border-[#714B67]"
         >
           {voters.map((v) => (
             <option key={v.id} value={v.id}>
@@ -156,116 +157,116 @@ function SurveyContent() {
 
       {/* Selected Voter Info Card */}
       {selectedVoter && (
-        <div className="bg-white border border-[#DEE2E6] rounded-[4px] p-3.5 space-y-3 shadow-none">
+        <div className="bg-white border border-[#DEE2E6] rounded-[4px] p-5 space-y-4 shadow-none">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-sm font-bold text-[#212529]">{selectedVoter.name}</h2>
-              <p className="text-[11px] font-mono text-[#714B67] font-semibold">{selectedVoter.voter_id_card}</p>
+              <h2 className="text-lg font-bold text-[#212529]">{selectedVoter.name}</h2>
+              <p className="text-sm font-mono text-[#714B67] font-bold">{selectedVoter.voter_id_card}</p>
             </div>
-            <Badge status={selectedVoter.contact_status} size="sm" />
+            <Badge status={selectedVoter.contact_status} size="md" />
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-xs bg-[#F8F9FA] p-2.5 rounded-[3px] border border-[#DEE2E6]">
+          <div className="grid grid-cols-2 gap-3 text-sm bg-[#F8F9FA] p-3.5 rounded-[4px] border border-[#DEE2E6]">
             <div>
-              <span className="text-[#6C757D] text-[11px]">Age / Sex:</span>
-              <p className="font-semibold text-[#212529]">{selectedVoter.age || "—"} yrs • {selectedVoter.gender || "—"}</p>
+              <span className="text-[#6C757D] text-xs font-semibold">{t("genderAge")}:</span>
+              <p className="font-bold text-[#212529]">{selectedVoter.age || "—"} yrs • {selectedVoter.gender || "—"}</p>
             </div>
             <div>
-              <span className="text-[#6C757D] text-[11px]">Booth:</span>
-              <p className="font-semibold text-[#212529]">{selectedVoter.booth_number}</p>
+              <span className="text-[#6C757D] text-xs font-semibold">{t("pollingBooth")}:</span>
+              <p className="font-bold text-[#212529]">{selectedVoter.booth_number}</p>
             </div>
             {selectedVoter.address && (
               <div className="col-span-2">
-                <span className="text-[#6C757D] text-[11px]">Address:</span>
-                <p className="text-[#212529] text-xs">{selectedVoter.address}</p>
+                <span className="text-[#6C757D] text-xs font-semibold">{t("addressWard")}:</span>
+                <p className="text-[#212529] text-sm">{selectedVoter.address}</p>
               </div>
             )}
           </div>
 
           {/* Stance Buttons */}
           <div>
-            <label className="text-xs font-semibold text-[#212529] block mb-1.5">
-              Electoral Sentiment / Feedback:
+            <label className="text-[15px] font-bold text-[#212529] block mb-2">
+              {t("outcomeSentiment")}:
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
                 onClick={() => setOutcome("favorable")}
-                className={`p-2.5 rounded-[3px] border flex flex-col items-center justify-center gap-1 transition-colors text-xs font-medium ${
+                className={`p-3.5 rounded-[4px] border flex flex-col items-center justify-center gap-1.5 transition-colors text-[14px] font-semibold ${
                   outcome === "favorable"
-                    ? "bg-[#E8F5E9] border-[#2E7D32] text-[#2E7D32] font-semibold"
+                    ? "bg-[#E8F5E9] border-[#2E7D32] text-[#2E7D32] font-bold shadow-sm"
                     : "bg-white border-[#DEE2E6] text-[#212529] hover:bg-[#F8F9FA]"
                 }`}
               >
-                <ThumbsUp className="w-4 h-4 text-[#2E7D32]" />
-                <span>Favorable / Supporter</span>
+                <ThumbsUp className="w-5 h-5 text-[#2E7D32]" />
+                <span>{t("favorable")}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setOutcome("undecided")}
-                className={`p-2.5 rounded-[3px] border flex flex-col items-center justify-center gap-1 transition-colors text-xs font-medium ${
+                className={`p-3.5 rounded-[4px] border flex flex-col items-center justify-center gap-1.5 transition-colors text-[14px] font-semibold ${
                   outcome === "undecided"
-                    ? "bg-[#FFF3E0] border-[#E65100] text-[#E65100] font-semibold"
+                    ? "bg-[#FFF3E0] border-[#E65100] text-[#E65100] font-bold shadow-sm"
                     : "bg-white border-[#DEE2E6] text-[#212529] hover:bg-[#F8F9FA]"
                 }`}
               >
-                <HelpCircle className="w-4 h-4 text-[#E65100]" />
-                <span>Undecided / Neutral</span>
+                <HelpCircle className="w-5 h-5 text-[#E65100]" />
+                <span>{t("undecided")}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setOutcome("unfavorable")}
-                className={`p-2.5 rounded-[3px] border flex flex-col items-center justify-center gap-1 transition-colors text-xs font-medium ${
+                className={`p-3.5 rounded-[4px] border flex flex-col items-center justify-center gap-1.5 transition-colors text-[14px] font-semibold ${
                   outcome === "unfavorable"
-                    ? "bg-[#FFEBEE] border-[#C62828] text-[#C62828] font-semibold"
+                    ? "bg-[#FFEBEE] border-[#C62828] text-[#C62828] font-bold shadow-sm"
                     : "bg-white border-[#DEE2E6] text-[#212529] hover:bg-[#F8F9FA]"
                 }`}
               >
-                <ThumbsDown className="w-4 h-4 text-[#C62828]" />
-                <span>Unfavorable / Opposed</span>
+                <ThumbsDown className="w-5 h-5 text-[#C62828]" />
+                <span>{t("unfavorable")}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setOutcome("not_available")}
-                className={`p-2.5 rounded-[3px] border flex flex-col items-center justify-center gap-1 transition-colors text-xs font-medium ${
+                className={`p-3.5 rounded-[4px] border flex flex-col items-center justify-center gap-1.5 transition-colors text-[14px] font-semibold ${
                   outcome === "not_available"
-                    ? "bg-[#F8F9FA] border-[#6C757D] text-[#212529] font-semibold"
+                    ? "bg-[#F8F9FA] border-[#6C757D] text-[#212529] font-bold shadow-sm"
                     : "bg-white border-[#DEE2E6] text-[#212529] hover:bg-[#F8F9FA]"
                 }`}
               >
-                <Lock className="w-4 h-4 text-[#6C757D]" />
-                <span>Door Locked / Absent</span>
+                <Lock className="w-5 h-5 text-[#6C757D]" />
+                <span>{t("notAvailable")}</span>
               </button>
             </div>
           </div>
 
           {/* Notes Input */}
           <Textarea
-            label="Canvassing Notes & Grievances"
+            label={t("canvassingNotes")}
             placeholder="Local concerns, party leaning, key demands..."
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
           />
 
           {/* Schedule Follow-up Toggle */}
-          <div className="pt-2 border-t border-[#DEE2E6]">
+          <div className="pt-3 border-t border-[#DEE2E6]">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-[#212529]">
+              <span className="text-[15px] font-semibold text-[#212529]">
                 Schedule Callback / Second Visit?
               </span>
               <input
                 type="checkbox"
                 checked={scheduleFollowUp}
                 onChange={(e) => setScheduleFollowUp(e.target.checked)}
-                className="w-4 h-4 accent-[#714B67] rounded cursor-pointer"
+                className="w-5 h-5 accent-[#714B67] rounded cursor-pointer"
               />
             </div>
 
             {scheduleFollowUp && (
-              <div className="mt-2.5 p-2.5 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[3px] space-y-2">
+              <div className="mt-3 p-3.5 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[4px] space-y-3">
                 <Input
                   label="Target Callback Date"
                   type="date"
@@ -284,12 +285,12 @@ function SurveyContent() {
           </div>
 
           {/* Action Submit */}
-          <div className="pt-2">
+          <div className="pt-3">
             <Button
               onClick={handleSubmitSurvey}
-              className="w-full h-10 text-xs font-semibold"
+              className="w-full h-12 text-base font-bold"
               variant="primary"
-              leftIcon={<CheckCircle2 className="w-4 h-4" />}
+              leftIcon={<CheckCircle2 className="w-5 h-5" />}
             >
               Submit Field Survey
             </Button>

@@ -40,55 +40,55 @@ export function Modal({
   if (!isOpen) return null;
 
   const maxWidthClasses = {
-    sm: "max-w-sm",
-    md: "max-w-md",
-    lg: "max-w-xl",
-    xl: "max-w-2xl",
-    "2xl": "max-w-3xl",
+    sm: "max-w-md",
+    md: "max-w-lg",
+    lg: "max-w-2xl",
+    xl: "max-w-3xl",
+    "2xl": "max-w-4xl",
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/30 transition-opacity"
+        className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity"
         onClick={onClose}
       />
 
       {/* Modal Dialog Content */}
       <div
         className={cn(
-          "relative w-full bg-white border border-[#DEE2E6] rounded-[4px] shadow-modal z-10 flex flex-col max-h-[90vh] overflow-hidden",
+          "relative w-full bg-white border border-[#DEE2E6] rounded-[4px] shadow-2xl z-10 flex flex-col max-h-[90vh] overflow-hidden",
           maxWidthClasses[maxWidth]
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#DEE2E6] bg-[#F8F9FA]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#DEE2E6] bg-[#F8F9FA]">
           <div>
-            <h3 className="text-sm font-semibold text-[#212529] tracking-tight">
+            <h3 className="text-lg sm:text-xl font-bold text-[#212529] tracking-tight">
               {title}
             </h3>
             {subtitle && (
-              <p className="text-[11px] text-[#6C757D] mt-0.5">{subtitle}</p>
+              <p className="text-xs sm:text-sm text-[#6C757D] mt-0.5">{subtitle}</p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="text-[#6C757D] hover:text-[#212529] p-1 rounded-[3px] hover:bg-[#E9ECEF] transition-colors"
+            className="text-[#6C757D] hover:text-[#212529] p-1.5 rounded-[3px] hover:bg-[#E9ECEF] transition-colors"
             aria-label="Close dialog"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-4 overflow-y-auto space-y-3 text-xs text-[#212529]">
+        <div className="p-5 sm:p-6 overflow-y-auto space-y-4 text-[15px] text-[#212529]">
           {children}
         </div>
 
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-2 px-4 py-2.5 border-t border-[#DEE2E6] bg-[#F8F9FA]">
+          <div className="flex items-center justify-end gap-2.5 px-5 py-3.5 border-t border-[#DEE2E6] bg-[#F8F9FA]">
             {footer}
           </div>
         )}

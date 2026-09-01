@@ -5,9 +5,9 @@ import Link from "next/link";
 import { dbService } from "@/lib/store/data-service";
 import { useAuth } from "@/lib/context/auth-context";
 import { useToast } from "@/lib/context/toast-context";
+import { useLanguage } from "@/lib/i18n";
 import { Voter, Booth, Area } from "@/lib/types";
 import { exportToCsv } from "@/lib/utils/csv-parser";
-import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -17,20 +17,15 @@ import { Pagination } from "@/components/ui/Pagination";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { OdooControlPanel } from "@/components/ui/OdooControlPanel";
-import { formatDate } from "@/lib/utils";
 import {
   Plus,
-  Search,
   FileSpreadsheet,
   Download,
-  Filter,
   Edit2,
   Trash2,
   Eye,
-  Phone,
   CheckSquare,
   Square,
-  ChevronDown,
   X,
   UserCheck,
 } from "lucide-react";
@@ -38,6 +33,7 @@ import {
 export default function VotersPage() {
   const { client, user } = useAuth();
   const { success, error: toastError } = useToast();
+  const { t } = useLanguage();
   const clientId = client?.id || "client-1";
 
   // Data state
@@ -283,30 +279,30 @@ export default function VotersPage() {
   };
 
   return (
-    <div className="space-y-3">
-      {/* Odoo ERP Control Panel */}
+    <div className="space-y-4">
+      {/* Odoo Control Panel */}
       <OdooControlPanel
-        breadcrumb="Campaign"
-        title="Voter Directory"
-        subtitle="Manage and canvass registered electors across polling stations"
+        breadcrumb={t("navCampaigns")}
+        title={t("votersTitle")}
+        subtitle={t("votersSubtitle")}
         primaryAction={{
-          label: "Add Voter",
+          label: t("addVoter"),
           onClick: handleOpenAdd,
-          icon: <Plus className="w-3.5 h-3.5" />,
+          icon: <Plus className="w-4 h-4" />,
         }}
         secondaryActions={[
           {
-            label: "Import CSV",
+            label: t("importCsv"),
             href: "/client/voters/import",
-            icon: <FileSpreadsheet className="w-3.5 h-3.5 text-[#6C757D]" />,
+            icon: <FileSpreadsheet className="w-4 h-4 text-[#6C757D]" />,
           },
           {
-            label: "Export CSV",
+            label: t("exportCsv"),
             onClick: handleExportCsv,
-            icon: <Download className="w-3.5 h-3.5 text-[#6C757D]" />,
+            icon: <Download className="w-4 h-4 text-[#6C757D]" />,
           },
         ]}
-        searchPlaceholder="Search name, EPIC, mobile..."
+        searchPlaceholder={t("searchVoterPlaceholder")}
         searchValue={search}
         onSearchChange={(val) => {
           setSearch(val);
@@ -320,16 +316,16 @@ export default function VotersPage() {
           onPageChange: (p) => setCurrentPage(p),
         }}
         filterComponent={
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <select
               value={boothFilter}
               onChange={(e) => {
                 setBoothFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="h-8 bg-white border border-[#DEE2E6] rounded-[3px] text-xs px-2 text-[#212529] focus:outline-none focus:border-[#714B67]"
+              className="h-10 bg-white border border-[#DEE2E6] rounded-[4px] text-[14px] px-2.5 text-[#212529] focus:outline-none focus:border-[#714B67]"
             >
-              <option value="all">All Polling Booths</option>
+              <option value="all">{t("allBooths")}</option>
               {booths.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.booth_number} - {b.booth_name}
@@ -343,7 +339,7 @@ export default function VotersPage() {
                 setAreaFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="h-8 bg-white border border-[#DEE2E6] rounded-[3px] text-xs px-2 text-[#212529] focus:outline-none focus:border-[#714B67]"
+              className="h-10 bg-white border border-[#DEE2E6] rounded-[4px] text-[14px] px-2.5 text-[#212529] focus:outline-none focus:border-[#714B67]"
             >
               <option value="all">All Wards / Areas</option>
               {areas.map((a) => (
@@ -359,15 +355,14 @@ export default function VotersPage() {
                 setStatusFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="h-8 bg-white border border-[#DEE2E6] rounded-[3px] text-xs px-2 text-[#212529] focus:outline-none focus:border-[#714B67]"
+              className="h-10 bg-white border border-[#DEE2E6] rounded-[4px] text-[14px] px-2.5 text-[#212529] focus:outline-none focus:border-[#714B67]"
             >
-              <option value="all">All Contact Statuses</option>
-              <option value="uncontacted">Uncontacted</option>
-              <option value="favorable">Favorable / Supporter</option>
-              <option value="undecided">Undecided</option>
-              <option value="unfavorable">Unfavorable</option>
-              <option value="contacted">Contacted</option>
-              <option value="not_available">Door Locked / Not Available</option>
+              <option value="all">{t("allSentiments")}</option>
+              <option value="uncontacted">{t("uncontacted")}</option>
+              <option value="favorable">{t("favorable")}</option>
+              <option value="undecided">{t("undecided")}</option>
+              <option value="unfavorable">{t("unfavorable")}</option>
+              <option value="not_available">{t("notAvailable")}</option>
             </select>
 
             <select
@@ -376,7 +371,7 @@ export default function VotersPage() {
                 setGenderFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="h-8 bg-white border border-[#DEE2E6] rounded-[3px] text-xs px-2 text-[#212529] focus:outline-none focus:border-[#714B67]"
+              className="h-10 bg-white border border-[#DEE2E6] rounded-[4px] text-[14px] px-2.5 text-[#212529] focus:outline-none focus:border-[#714B67]"
             >
               <option value="all">All Genders</option>
               <option value="Male">Male</option>
@@ -389,10 +384,10 @@ export default function VotersPage() {
 
       {/* Bulk Action Bar (When rows are selected) */}
       {selectedVoterIds.length > 0 && (
-        <div className="bg-[#F1ECEF] border border-[#D9CAD5] rounded-[4px] px-3.5 py-2 flex items-center justify-between text-xs animate-in fade-in duration-100">
+        <div className="bg-[#F1ECEF] border border-[#D9CAD5] rounded-[4px] px-4 py-2.5 flex items-center justify-between text-sm animate-in fade-in duration-100">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-[#714B67]">
-              {selectedVoterIds.length} records selected
+            <span className="font-bold text-[#714B67]">
+              {selectedVoterIds.length} {t("selectedCount")}
             </span>
           </div>
 
@@ -401,45 +396,45 @@ export default function VotersPage() {
               size="sm"
               variant="secondary"
               onClick={() => setBulkStatusModal(true)}
-              leftIcon={<UserCheck className="w-3.5 h-3.5 text-[#714B67]" />}
+              leftIcon={<UserCheck className="w-4 h-4 text-[#714B67]" />}
             >
-              Set Status
+              {t("status")}
             </Button>
             <button
               onClick={() => setSelectedVoterIds([])}
-              className="text-[#6C757D] hover:text-[#212529] p-1"
+              className="text-[#6C757D] hover:text-[#212529] p-1.5"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
       )}
 
-      {/* Dense Professional Odoo-style Data Table */}
+      {/* Highly Readable Odoo Data Table */}
       <div className="bg-white border border-[#DEE2E6] rounded-[4px] overflow-hidden shadow-none">
         <div className="overflow-x-auto">
           <table className="odoo-table">
             <thead>
               <tr>
-                <th className="w-9 text-center">
+                <th className="w-10 text-center">
                   <button
                     onClick={toggleSelectAll}
                     className="text-[#6C757D] hover:text-[#212529] inline-flex items-center"
                   >
                     {selectedVoterIds.length === voters.length && voters.length > 0 ? (
-                      <CheckSquare className="w-4 h-4 text-[#714B67]" />
+                      <CheckSquare className="w-5 h-5 text-[#714B67]" />
                     ) : (
-                      <Square className="w-4 h-4 text-[#CED4DA]" />
+                      <Square className="w-5 h-5 text-[#CED4DA]" />
                     )}
                   </button>
                 </th>
-                <th>EPIC Number</th>
-                <th>Voter Name</th>
-                <th>Contact</th>
-                <th>Demographics</th>
-                <th>Booth & Ward</th>
-                <th>Status</th>
-                <th className="text-right">Actions</th>
+                <th>{t("voterIdCard")}</th>
+                <th>{t("electorName")}</th>
+                <th>{t("mobileNumber")}</th>
+                <th>{t("genderAge")}</th>
+                <th>{t("pollingBooth")}</th>
+                <th>{t("contactStatus")}</th>
+                <th className="text-right">{t("actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -453,41 +448,41 @@ export default function VotersPage() {
                         className="text-[#6C757D] hover:text-[#212529] inline-flex items-center"
                       >
                         {isSelected ? (
-                          <CheckSquare className="w-4 h-4 text-[#714B67]" />
+                          <CheckSquare className="w-5 h-5 text-[#714B67]" />
                         ) : (
-                          <Square className="w-4 h-4 text-[#CED4DA]" />
+                          <Square className="w-5 h-5 text-[#CED4DA]" />
                         )}
                       </button>
                     </td>
-                    <td className="font-mono text-xs font-semibold text-[#714B67]">
+                    <td className="font-mono text-sm font-bold text-[#714B67]">
                       {voter.voter_id_card}
                     </td>
                     <td>
-                      <p className="font-semibold text-[#212529] leading-tight">{voter.name}</p>
+                      <p className="font-bold text-[#212529] leading-snug">{voter.name}</p>
                       {voter.address && (
-                        <p className="text-[11px] text-[#6C757D] truncate max-w-xs">{voter.address}</p>
+                        <p className="text-[13px] text-[#6C757D] truncate max-w-xs">{voter.address}</p>
                       )}
                     </td>
-                    <td className="text-xs text-[#495057]">
+                    <td className="text-[14px] text-[#495057]">
                       {voter.mobile ? (
                         <span className="font-mono">{voter.mobile}</span>
                       ) : (
                         <span className="text-[#ADB5BD]">—</span>
                       )}
                     </td>
-                    <td className="text-xs text-[#495057]">
+                    <td className="text-[14px] text-[#495057]">
                       {voter.age ? `${voter.age} yrs` : "—"} • {voter.gender || "—"}
                     </td>
-                    <td className="text-xs">
-                      <p className="font-medium text-[#212529]">
+                    <td className="text-[14px]">
+                      <p className="font-semibold text-[#212529]">
                         {voter.booth_number ? `Booth ${voter.booth_number}` : "Unassigned"}
                       </p>
-                      <p className="text-[11px] text-[#6C757D]">{voter.area_name || "—"}</p>
+                      <p className="text-[12px] text-[#6C757D]">{voter.area_name || "—"}</p>
                     </td>
                     <td>
-                      <Badge status={voter.contact_status} size="sm" />
+                      <Badge status={voter.contact_status} size="md" />
                       {voter.follow_up_status === "pending" && (
-                        <span className="ml-1 text-[10px] text-[#E65100] font-semibold">
+                        <span className="ml-1 text-[11px] text-[#E65100] font-bold">
                           • Follow-up
                         </span>
                       )}
@@ -496,24 +491,24 @@ export default function VotersPage() {
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => setViewingVoter(voter)}
-                          className="p-1 rounded hover:bg-[#F8F9FA] text-[#6C757D] hover:text-[#212529]"
+                          className="p-1.5 rounded hover:bg-[#F8F9FA] text-[#6C757D] hover:text-[#212529]"
                           title="View Details"
                         >
-                          <Eye className="w-3.5 h-3.5" />
+                          <Eye className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleOpenEdit(voter)}
-                          className="p-1 rounded hover:bg-[#F8F9FA] text-[#6C757D] hover:text-[#212529]"
+                          className="p-1.5 rounded hover:bg-[#F8F9FA] text-[#6C757D] hover:text-[#212529]"
                           title="Edit Record"
                         >
-                          <Edit2 className="w-3.5 h-3.5" />
+                          <Edit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => setDeletingVoter(voter)}
-                          className="p-1 rounded hover:bg-[#FFEBEE] text-[#C62828]"
+                          className="p-1.5 rounded hover:bg-[#FFEBEE] text-[#C62828]"
                           title="Delete Record"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -522,8 +517,8 @@ export default function VotersPage() {
               })}
               {voters.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="text-center py-8 text-xs text-[#6C757D]">
-                    No elector records found matching your filters.
+                  <td colSpan={8} className="text-center py-12 text-sm text-[#6C757D]">
+                    {t("noVotersFound")}
                   </td>
                 </tr>
               )}
@@ -541,50 +536,49 @@ export default function VotersPage() {
         />
       </div>
 
-      {/* Add / Edit Form Modal (Odoo ERP Form Sheet Style) */}
+      {/* Add / Edit Form Modal */}
       <Modal
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        title={editingVoter ? `Edit Elector: ${editingVoter.name}` : "New Elector Record"}
-        subtitle="Campaign Voter Management Sheet"
+        title={editingVoter ? `${t("edit")} ${editingVoter.name}` : t("addVoter")}
+        subtitle={t("voterDetails")}
         maxWidth="lg"
         footer={
           <>
-            <Button variant="secondary" size="sm" onClick={() => setIsFormOpen(false)}>
-              Discard
+            <Button variant="secondary" size="md" onClick={() => setIsFormOpen(false)}>
+              {t("discard")}
             </Button>
-            <Button size="sm" variant="primary" onClick={handleSaveVoter}>
-              {editingVoter ? "Save Changes" : "Save Record"}
+            <Button size="md" variant="primary" onClick={handleSaveVoter}>
+              {editingVoter ? t("saveChanges") : t("save")}
             </Button>
           </>
         }
       >
-        <form onSubmit={handleSaveVoter} className="space-y-3">
-          {/* Section 1: Identification & Demographics */}
-          <div className="p-3 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[3px] space-y-2.5">
-            <p className="text-[11px] font-semibold text-[#6C757D] uppercase tracking-wider">
-              Identity & Contact
+        <form onSubmit={handleSaveVoter} className="space-y-4">
+          <div className="p-4 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[4px] space-y-3">
+            <p className="text-xs font-bold text-[#6C757D] uppercase tracking-wider">
+              {t("electorName")} & {t("voterIdCard")}
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input
-                label="Voter ID / EPIC Number"
+                label={t("voterIdCard")}
                 placeholder="e.g. DL/04/023/100429"
                 value={formData.voter_id_card}
                 onChange={(e) => setFormData({ ...formData, voter_id_card: e.target.value.toUpperCase() })}
                 required
               />
               <Input
-                label="Full Name"
-                placeholder="Voter Name"
+                label={t("electorName")}
+                placeholder="Full Name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <Input
-                label="Mobile"
+                label={t("mobileNumber")}
                 placeholder="+91 98000 00000"
                 value={formData.mobile}
                 onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
@@ -609,54 +603,51 @@ export default function VotersPage() {
             </div>
           </div>
 
-          {/* Section 2: Polling Booth Assignment */}
-          <div className="p-3 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[3px] space-y-2.5">
-            <p className="text-[11px] font-semibold text-[#6C757D] uppercase tracking-wider">
-              Polling Station & Locality
+          <div className="p-4 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[4px] space-y-3">
+            <p className="text-xs font-bold text-[#6C757D] uppercase tracking-wider">
+              {t("pollingBooth")} & {t("addressWard")}
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Select
-                label="Ward / Area"
+                label={t("areaWard")}
                 value={formData.area_id}
                 onChange={(e) => setFormData({ ...formData, area_id: e.target.value })}
                 options={areas.map((a) => ({ value: a.id, label: a.name }))}
               />
               <Select
-                label="Polling Booth"
+                label={t("pollingBooth")}
                 value={formData.booth_id}
                 onChange={(e) => setFormData({ ...formData, booth_id: e.target.value })}
                 options={booths.map((b) => ({ value: b.id, label: `${b.booth_number} - ${b.booth_name}` }))}
               />
             </div>
             <Input
-              label="House No / Street / Colony Address"
-              placeholder="Address details..."
+              label={t("addressWard")}
+              placeholder="House No / Street / Colony Address..."
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
             />
           </div>
 
-          {/* Section 3: Status & Field Notes */}
-          <div className="p-3 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[3px] space-y-2.5">
-            <p className="text-[11px] font-semibold text-[#6C757D] uppercase tracking-wider">
-              Canvassing & Field Outreach
+          <div className="p-4 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[4px] space-y-3">
+            <p className="text-xs font-bold text-[#6C757D] uppercase tracking-wider">
+              {t("contactStatus")} & {t("canvassingNotes")}
             </p>
             <Select
-              label="Contact Status"
+              label={t("contactStatus")}
               value={formData.contact_status}
               onChange={(e) => setFormData({ ...formData, contact_status: e.target.value as Voter["contact_status"] })}
               options={[
-                { value: "uncontacted", label: "Uncontacted" },
-                { value: "favorable", label: "Favorable / Supporter" },
-                { value: "undecided", label: "Undecided" },
-                { value: "unfavorable", label: "Unfavorable" },
-                { value: "contacted", label: "Contacted" },
-                { value: "not_available", label: "Not Available / Door Locked" },
+                { value: "uncontacted", label: t("uncontacted") },
+                { value: "favorable", label: t("favorable") },
+                { value: "undecided", label: t("undecided") },
+                { value: "unfavorable", label: t("unfavorable") },
+                { value: "not_available", label: t("notAvailable") },
               ]}
             />
             <Textarea
-              label="Canvassing Notes & Feedback"
-              placeholder="Local demands, grievances, party sentiment..."
+              label={t("canvassingNotes")}
+              placeholder="Key grievances, party preference, feedback..."
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             />
@@ -673,58 +664,58 @@ export default function VotersPage() {
           subtitle={`EPIC: ${viewingVoter.voter_id_card}`}
           maxWidth="md"
           footer={
-            <Button size="sm" variant="secondary" onClick={() => setViewingVoter(null)}>
-              Close
+            <Button size="md" variant="secondary" onClick={() => setViewingVoter(null)}>
+              {t("back")}
             </Button>
           }
         >
-          <div className="space-y-3 text-xs">
-            <div className="p-2.5 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[3px] flex items-center justify-between">
+          <div className="space-y-4 text-[15px]">
+            <div className="p-3.5 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[4px] flex items-center justify-between">
               <div>
-                <p className="font-bold text-sm text-[#212529]">{viewingVoter.name}</p>
-                <p className="font-mono text-[#6C757D] text-[11px]">{viewingVoter.voter_id_card}</p>
+                <p className="font-bold text-base text-[#212529]">{viewingVoter.name}</p>
+                <p className="font-mono text-[#6C757D] text-xs mt-0.5">{viewingVoter.voter_id_card}</p>
               </div>
-              <Badge status={viewingVoter.contact_status} />
+              <Badge status={viewingVoter.contact_status} size="md" />
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <div className="p-2 bg-white border border-[#DEE2E6] rounded-[3px]">
-                <span className="text-[#6C757D] text-[11px]">Mobile:</span>
-                <p className="font-semibold text-[#212529] font-mono mt-0.5">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="p-3 bg-white border border-[#DEE2E6] rounded-[4px]">
+                <span className="text-[#6C757D] text-xs font-semibold">{t("mobileNumber")}:</span>
+                <p className="font-bold text-[#212529] font-mono mt-0.5">
                   {viewingVoter.mobile || "Not available"}
                 </p>
               </div>
-              <div className="p-2 bg-white border border-[#DEE2E6] rounded-[3px]">
-                <span className="text-[#6C757D] text-[11px]">Demographics:</span>
-                <p className="font-semibold text-[#212529] mt-0.5">
+              <div className="p-3 bg-white border border-[#DEE2E6] rounded-[4px]">
+                <span className="text-[#6C757D] text-xs font-semibold">{t("genderAge")}:</span>
+                <p className="font-bold text-[#212529] mt-0.5">
                   {viewingVoter.age || "—"} yrs • {viewingVoter.gender || "—"}
                 </p>
               </div>
-              <div className="p-2 bg-white border border-[#DEE2E6] rounded-[3px]">
-                <span className="text-[#6C757D] text-[11px]">Polling Booth:</span>
-                <p className="font-semibold text-[#212529] mt-0.5">
+              <div className="p-3 bg-white border border-[#DEE2E6] rounded-[4px]">
+                <span className="text-[#6C757D] text-xs font-semibold">{t("pollingBooth")}:</span>
+                <p className="font-bold text-[#212529] mt-0.5">
                   {viewingVoter.booth_number} - {viewingVoter.booth_name}
                 </p>
               </div>
-              <div className="p-2 bg-white border border-[#DEE2E6] rounded-[3px]">
-                <span className="text-[#6C757D] text-[11px]">Area / Ward:</span>
-                <p className="font-semibold text-[#212529] mt-0.5">
+              <div className="p-3 bg-white border border-[#DEE2E6] rounded-[4px]">
+                <span className="text-[#6C757D] text-xs font-semibold">{t("areaWard")}:</span>
+                <p className="font-bold text-[#212529] mt-0.5">
                   {viewingVoter.area_name || "—"}
                 </p>
               </div>
             </div>
 
             {viewingVoter.address && (
-              <div className="p-2 bg-white border border-[#DEE2E6] rounded-[3px]">
-                <span className="text-[#6C757D] text-[11px]">Address:</span>
+              <div className="p-3 bg-white border border-[#DEE2E6] rounded-[4px]">
+                <span className="text-[#6C757D] text-xs font-semibold">{t("addressWard")}:</span>
                 <p className="text-[#212529] mt-0.5">{viewingVoter.address}</p>
               </div>
             )}
 
             {viewingVoter.notes && (
-              <div className="p-2 bg-[#FFF3E0] border border-[#FFE0B2] rounded-[3px]">
-                <span className="font-semibold text-[#E65100] text-[11px]">Canvassing Notes:</span>
-                <p className="text-[#212529] mt-0.5 italic text-xs">"{viewingVoter.notes}"</p>
+              <div className="p-3 bg-[#FFF3E0] border border-[#FFE0B2] rounded-[4px]">
+                <span className="font-bold text-[#E65100] text-xs">{t("canvassingNotes")}:</span>
+                <p className="text-[#212529] mt-0.5 italic text-sm">"{viewingVoter.notes}"</p>
               </div>
             )}
           </div>
@@ -735,37 +726,33 @@ export default function VotersPage() {
       <Modal
         isOpen={bulkStatusModal}
         onClose={() => setBulkStatusModal(false)}
-        title="Update Contact Status"
-        subtitle={`Apply to ${selectedVoterIds.length} selected voter records`}
+        title={t("contactStatus")}
+        subtitle={`Apply to ${selectedVoterIds.length} ${t("selectedCount")}`}
         maxWidth="sm"
         footer={
           <>
-            <Button variant="secondary" size="sm" onClick={() => setBulkStatusModal(false)}>
-              Cancel
+            <Button variant="secondary" size="md" onClick={() => setBulkStatusModal(false)}>
+              {t("cancel")}
             </Button>
-            <Button size="sm" variant="primary" onClick={handleBulkStatusChange}>
-              Apply Status
+            <Button size="md" variant="primary" onClick={handleBulkStatusChange}>
+              {t("saveChanges")}
             </Button>
           </>
         }
       >
-        <div className="space-y-3 text-xs">
+        <div className="space-y-3">
           <Select
-            label="Target Contact Status"
+            label={t("contactStatus")}
             value={selectedBulkStatus}
             onChange={(e) => setSelectedBulkStatus(e.target.value as Voter["contact_status"])}
             options={[
-              { value: "favorable", label: "Favorable / Supporter" },
-              { value: "undecided", label: "Undecided" },
-              { value: "unfavorable", label: "Unfavorable" },
-              { value: "contacted", label: "Contacted" },
-              { value: "uncontacted", label: "Uncontacted" },
-              { value: "not_available", label: "Not Available / Door Locked" },
+              { value: "favorable", label: t("favorable") },
+              { value: "undecided", label: t("undecided") },
+              { value: "unfavorable", label: t("unfavorable") },
+              { value: "uncontacted", label: t("uncontacted") },
+              { value: "not_available", label: t("notAvailable") },
             ]}
           />
-          <p className="text-[11px] text-[#6C757D]">
-            This will update the contact status for all {selectedVoterIds.length} currently selected records in the campaign database.
-          </p>
         </div>
       </Modal>
 
@@ -775,9 +762,9 @@ export default function VotersPage() {
           isOpen={true}
           onClose={() => setDeletingVoter(null)}
           onConfirm={handleDeleteVoter}
-          title="Delete Voter Record"
+          title={t("delete")}
           message={`Are you sure you want to remove ${deletingVoter.name} (${deletingVoter.voter_id_card}) from the campaign database?`}
-          confirmText="Delete Record"
+          confirmText={t("delete")}
           variant="danger"
         />
       )}

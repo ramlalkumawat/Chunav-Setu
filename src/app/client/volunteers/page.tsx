@@ -4,8 +4,8 @@ import React, { useState, useEffect } from "react";
 import { dbService } from "@/lib/store/data-service";
 import { useAuth } from "@/lib/context/auth-context";
 import { useToast } from "@/lib/context/toast-context";
+import { useLanguage } from "@/lib/i18n";
 import { Volunteer, Booth, Area } from "@/lib/types";
-import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -16,10 +16,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { OdooControlPanel } from "@/components/ui/OdooControlPanel";
 import { formatDate } from "@/lib/utils";
 import {
-  UserCheck,
   Plus,
-  Search,
-  Building,
   Edit2,
   Power,
   KeyRound,
@@ -28,6 +25,7 @@ import {
 export default function VolunteersPage() {
   const { client, user } = useAuth();
   const { success, error: toastError } = useToast();
+  const { t } = useLanguage();
   const clientId = client?.id || "client-1";
 
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
@@ -179,86 +177,86 @@ export default function VolunteersPage() {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Odoo Control Panel */}
       <OdooControlPanel
-        breadcrumb="Campaign"
-        title="Volunteers & Cadre"
-        subtitle="Manage grassroots field staff, booth assignments, and mobile app accounts"
+        breadcrumb={t("navCampaigns")}
+        title={t("volunteersTitle")}
+        subtitle={t("volunteersSubtitle")}
         primaryAction={{
-          label: "Add Volunteer",
+          label: t("addVolunteer"),
           onClick: handleOpenAdd,
-          icon: <Plus className="w-3.5 h-3.5" />,
+          icon: <Plus className="w-4 h-4" />,
         }}
         searchPlaceholder="Search volunteer name, phone, booth..."
         searchValue={search}
         onSearchChange={setSearch}
       />
 
-      {/* Dense Odoo Table */}
+      {/* Readable Odoo Table */}
       <div className="bg-white border border-[#DEE2E6] rounded-[4px] overflow-hidden shadow-none">
         <div className="overflow-x-auto">
           <table className="odoo-table">
             <thead>
               <tr>
-                <th>Volunteer Name</th>
-                <th>Mobile & Contact</th>
-                <th>Ward / Area</th>
-                <th>Assigned Polling Station</th>
-                <th className="text-center">Pending Tasks</th>
-                <th className="text-center">Surveys Logged</th>
-                <th>Status</th>
-                <th className="text-right">Actions</th>
+                <th>{t("volunteerName")}</th>
+                <th>{t("mobileNumber")}</th>
+                <th>{t("wardLocality")}</th>
+                <th>{t("assignedBooth")}</th>
+                <th className="text-center">{t("pendingTasks")}</th>
+                <th className="text-center">{t("surveysDone")}</th>
+                <th>{t("status")}</th>
+                <th className="text-right">{t("actions")}</th>
               </tr>
             </thead>
             <tbody>
               {filteredVolunteers.map((vol) => (
                 <tr key={vol.id}>
                   <td>
-                    <p className="font-semibold text-[#212529]">{vol.name}</p>
-                    <p className="text-[11px] text-[#6C757D]">Joined: {formatDate(vol.joining_date)}</p>
+                    <p className="font-bold text-[#212529]">{vol.name}</p>
+                    <p className="text-[12px] text-[#6C757D]">Joined: {formatDate(vol.joining_date)}</p>
                   </td>
-                  <td className="text-xs">
-                    <p className="font-mono text-[#212529] font-medium">{vol.mobile}</p>
-                    {vol.email && <p className="text-[11px] text-[#6C757D]">{vol.email}</p>}
+                  <td className="text-[14px]">
+                    <p className="font-mono text-[#212529] font-semibold">{vol.mobile}</p>
+                    {vol.email && <p className="text-[12px] text-[#6C757D]">{vol.email}</p>}
                   </td>
-                  <td className="text-xs text-[#495057]">{vol.assigned_area_name || "—"}</td>
-                  <td className="text-xs font-medium text-[#714B67]">
+                  <td className="text-[14px] text-[#495057]">{vol.assigned_area_name || "—"}</td>
+                  <td className="text-[14px] font-semibold text-[#714B67]">
                     {vol.assigned_booth_name || "Unassigned"}
                   </td>
-                  <td className="text-center text-xs">
-                    <span className="font-semibold text-[#212529]">{vol.pending_tasks || 0}</span>
+                  <td className="text-center text-[14px]">
+                    <span className="font-bold text-[#212529]">{vol.pending_tasks || 0}</span>
                   </td>
-                  <td className="text-center text-xs font-semibold text-[#2E7D32]">
+                  <td className="text-center text-[14px] font-bold text-[#2E7D32]">
                     {vol.total_contacts || 0}
                   </td>
                   <td>
-                    <Badge status={vol.status} size="sm" />
+                    <Badge status={vol.status} size="md" />
                   </td>
                   <td className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => setResetVol(vol)}
-                        className="p-1 rounded hover:bg-[#F8F9FA] text-[#6C757D] hover:text-[#212529]"
+                        className="p-1.5 rounded hover:bg-[#F8F9FA] text-[#6C757D] hover:text-[#212529]"
                         title="Reset Mobile App Credentials"
                       >
-                        <KeyRound className="w-3.5 h-3.5" />
+                        <KeyRound className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleOpenEdit(vol)}
-                        className="p-1 rounded hover:bg-[#F8F9FA] text-[#6C757D] hover:text-[#212529]"
+                        className="p-1.5 rounded hover:bg-[#F8F9FA] text-[#6C757D] hover:text-[#212529]"
                         title="Edit Volunteer"
                       >
-                        <Edit2 className="w-3.5 h-3.5" />
+                        <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setStatusVol(vol)}
-                        className={`p-1 rounded hover:bg-[#F8F9FA] ${
+                        className={`p-1.5 rounded hover:bg-[#F8F9FA] ${
                           vol.status === "active" ? "text-[#2E7D32]" : "text-[#C62828]"
                         }`}
                         title={vol.status === "active" ? "Deactivate Volunteer" : "Activate"}
                       >
-                        <Power className="w-3.5 h-3.5" />
+                        <Power className="w-4 h-4" />
                       </button>
                     </div>
                   </td>
@@ -266,7 +264,7 @@ export default function VolunteersPage() {
               ))}
               {filteredVolunteers.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="text-center py-8 text-xs text-[#6C757D]">
+                  <td colSpan={8} className="text-center py-12 text-sm text-[#6C757D]">
                     No volunteers found matching your query.
                   </td>
                 </tr>
@@ -280,32 +278,32 @@ export default function VolunteersPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingVol ? `Edit Volunteer: ${editingVol.name}` : "New Volunteer Account"}
+        title={editingVol ? `${t("edit")} ${editingVol.name}` : t("addVolunteer")}
         subtitle="Campaign Cadre Configuration Sheet"
         maxWidth="md"
         footer={
           <>
-            <Button variant="secondary" size="sm" onClick={() => setIsModalOpen(false)}>
-              Discard
+            <Button variant="secondary" size="md" onClick={() => setIsModalOpen(false)}>
+              {t("discard")}
             </Button>
-            <Button size="sm" variant="primary" onClick={handleSaveVolunteer}>
-              {editingVol ? "Save Changes" : "Save Record"}
+            <Button size="md" variant="primary" onClick={handleSaveVolunteer}>
+              {editingVol ? t("saveChanges") : t("save")}
             </Button>
           </>
         }
       >
-        <form onSubmit={handleSaveVolunteer} className="space-y-3">
+        <form onSubmit={handleSaveVolunteer} className="space-y-4">
           <Input
-            label="Volunteer Full Name"
+            label={t("volunteerName")}
             placeholder="e.g. Ramesh Kumar"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             required
           />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input
-              label="Mobile Number (Login ID)"
+              label={t("mobileNumber")}
               placeholder="+91 99000 00000"
               value={formData.mobile}
               onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
@@ -320,15 +318,15 @@ export default function VolunteersPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Select
-              label="Assigned Ward / Area"
+              label={t("wardLocality")}
               value={formData.assigned_area_id}
               onChange={(e) => setFormData({ ...formData, assigned_area_id: e.target.value })}
               options={areas.map((a) => ({ value: a.id, label: a.name }))}
             />
             <Select
-              label="Assigned Polling Booth"
+              label={t("assignedBooth")}
               value={formData.assigned_booth_id}
               onChange={(e) => setFormData({ ...formData, assigned_booth_id: e.target.value })}
               options={booths.map((b) => ({ value: b.id, label: `${b.booth_number} - ${b.booth_name}` }))}
@@ -336,12 +334,12 @@ export default function VolunteersPage() {
           </div>
 
           <Select
-            label="Account Status"
+            label={t("status")}
             value={formData.status}
             onChange={(e) => setFormData({ ...formData, status: e.target.value as Volunteer["status"] })}
             options={[
-              { value: "active", label: "Active" },
-              { value: "inactive", label: "Inactive / In Training" },
+              { value: "active", label: t("active") },
+              { value: "inactive", label: t("inactive") },
             ]}
           />
 

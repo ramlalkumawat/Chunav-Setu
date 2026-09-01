@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { dbService } from "@/lib/store/data-service";
 import { useAuth } from "@/lib/context/auth-context";
 import { useToast } from "@/lib/context/toast-context";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { useLanguage } from "@/lib/i18n";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { OdooControlPanel } from "@/components/ui/OdooControlPanel";
@@ -13,6 +13,7 @@ import { ShieldCheck } from "lucide-react";
 export default function CampaignSettingsPage() {
   const { client, user } = useAuth();
   const { success } = useToast();
+  const { t } = useLanguage();
   const clientId = client?.id || "client-1";
 
   const [formData, setFormData] = useState({
@@ -40,14 +41,14 @@ export default function CampaignSettingsPage() {
   };
 
   return (
-    <div className="space-y-3 max-w-3xl">
+    <div className="space-y-4 max-w-3xl">
       {/* Odoo Control Panel */}
       <OdooControlPanel
-        breadcrumb="Campaign"
-        title="Settings & Configuration"
-        subtitle="Manage candidate parameters, constituency profile, and tenant security status"
+        breadcrumb={t("navCampaigns")}
+        title={t("settingsTitle")}
+        subtitle={t("settingsSubtitle")}
         primaryAction={{
-          label: "Save Changes",
+          label: t("saveChanges"),
           onClick: () => {
             const form = document.getElementById("settings-form") as HTMLFormElement;
             if (form) form.requestSubmit();
@@ -56,16 +57,16 @@ export default function CampaignSettingsPage() {
       />
 
       {/* Form Sheet */}
-      <div className="bg-white border border-[#DEE2E6] rounded-[4px] p-4 sm:p-5 shadow-none">
-        <form id="settings-form" onSubmit={handleSave} className="space-y-4 text-xs">
+      <div className="bg-white border border-[#DEE2E6] rounded-[4px] p-6 sm:p-7 shadow-none">
+        <form id="settings-form" onSubmit={handleSave} className="space-y-5">
           {/* General Information Group */}
-          <div className="p-3 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[3px] space-y-2.5">
-            <p className="text-[11px] font-semibold text-[#6C757D] uppercase tracking-wider">
-              Candidate Profile
+          <div className="p-4 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[4px] space-y-3">
+            <p className="text-xs font-bold text-[#6C757D] uppercase tracking-wider">
+              {t("candidateProfile")}
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input
-                label="Candidate Full Name"
+                label={t("candidateName")}
                 value={formData.candidate_name}
                 onChange={(e) => setFormData({ ...formData, candidate_name: e.target.value })}
                 required
@@ -78,9 +79,9 @@ export default function CampaignSettingsPage() {
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input
-                label="Official Contact Mobile"
+                label={t("mobileNumber")}
                 value={formData.mobile}
                 onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
                 required
@@ -96,11 +97,11 @@ export default function CampaignSettingsPage() {
           </div>
 
           {/* Constituency Information Group */}
-          <div className="p-3 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[3px] space-y-2.5">
-            <p className="text-[11px] font-semibold text-[#6C757D] uppercase tracking-wider">
-              Constituency & Electoral Details
+          <div className="p-4 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[4px] space-y-3">
+            <p className="text-xs font-bold text-[#6C757D] uppercase tracking-wider">
+              {t("constituency")}
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input
                 label="Campaign Title"
                 value={formData.campaign_name}
@@ -108,7 +109,7 @@ export default function CampaignSettingsPage() {
                 required
               />
               <Input
-                label="Constituency / AC / Ward"
+                label={t("constituency")}
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 required
@@ -117,16 +118,16 @@ export default function CampaignSettingsPage() {
           </div>
 
           {/* Security & Multi-Tenancy */}
-          <div className="p-3 bg-[#E8F5E9] border border-[#C8E6C9] rounded-[3px] text-xs flex items-center gap-2.5">
-            <ShieldCheck className="w-4 h-4 text-[#2E7D32] flex-shrink-0" />
+          <div className="p-4 bg-[#E8F5E9] border border-[#C8E6C9] rounded-[4px] text-sm flex items-center gap-3">
+            <ShieldCheck className="w-5 h-5 text-[#2E7D32] flex-shrink-0" />
             <p className="text-[#2E7D32]">
-              <strong>Multi-Tenant Isolation Active:</strong> All records are partitioned by tenant <code className="bg-white/70 px-1 py-0.5 rounded text-[11px] font-mono text-[#2E7D32]">{clientId}</code>.
+              <strong>Multi-Tenant Isolation Active:</strong> All records are partitioned by tenant <code className="bg-white/80 px-1.5 py-0.5 rounded text-xs font-mono text-[#2E7D32]">{clientId}</code>.
             </p>
           </div>
 
-          <div className="flex justify-end pt-1">
-            <Button type="submit" size="sm" variant="primary">
-              Save Campaign Settings
+          <div className="flex justify-end pt-2">
+            <Button type="submit" size="md" variant="primary">
+              {t("saveChanges")}
             </Button>
           </div>
         </form>

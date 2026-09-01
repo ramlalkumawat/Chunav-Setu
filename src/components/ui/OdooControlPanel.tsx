@@ -2,9 +2,8 @@
 
 import React from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Search, Filter, Layers, Star, Download, Upload, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, Plus } from "lucide-react";
 import { Button } from "./Button";
-import { Input } from "./Input";
 
 export interface OdooControlPanelProps {
   breadcrumb?: string;
@@ -57,56 +56,56 @@ export function OdooControlPanel({
     : 0;
 
   return (
-    <div className="bg-white border border-[#DEE2E6] rounded-[4px] px-3.5 py-2.5 mb-4 shadow-none">
+    <div className="bg-white border border-[#DEE2E6] rounded-[4px] px-4 sm:px-6 py-4 mb-4 shadow-none">
       {/* Top Row: Breadcrumb & Title on Left, Search & Pager on Right */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-2.5 border-b border-[#E9ECEF]">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-3.5 border-b border-[#E9ECEF]">
         {/* Left Side: Breadcrumb & Title */}
         <div>
-          <div className="flex items-center gap-1.5 text-[11px] text-[#6C757D]">
+          <div className="flex items-center gap-2 text-[14px] text-[#6C757D] font-medium">
             <span>{breadcrumb}</span>
             <span>/</span>
             <span className="font-semibold text-[#212529]">{title}</span>
           </div>
-          <h1 className="text-lg sm:text-xl font-bold text-[#212529] tracking-tight mt-0.5">
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#212529] tracking-tight mt-1">
             {title}
           </h1>
-          {subtitle && <p className="text-xs text-[#6C757D]">{subtitle}</p>}
+          {subtitle && <p className="text-[14px] sm:text-[15px] text-[#6C757D] mt-0.5">{subtitle}</p>}
         </div>
 
         {/* Right Side: Search Box & Record Pager */}
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+        <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
           {onSearchChange && (
-            <div className="relative w-full sm:w-64">
+            <div className="relative w-full sm:w-72">
               <input
                 type="text"
                 placeholder={searchPlaceholder}
                 value={searchValue || ""}
                 onChange={(e) => onSearchChange(e.target.value)}
-                className="w-full h-8 bg-white border border-[#DEE2E6] rounded-[3px] text-xs px-2.5 pl-7 text-[#212529] placeholder:text-[#ADB5BD] focus:outline-none focus:border-[#714B67] focus:ring-1 focus:ring-[#714B67]"
+                className="w-full h-10 bg-white border border-[#DEE2E6] rounded-[4px] text-[15px] px-3 pl-9 text-[#212529] placeholder:text-[#ADB5BD] focus:outline-none focus:border-[#714B67] focus:ring-1 focus:ring-[#714B67]"
               />
-              <Search className="w-3.5 h-3.5 text-[#6C757D] absolute left-2 top-2.5 pointer-events-none" />
+              <Search className="w-4 h-4 text-[#6C757D] absolute left-3 top-3 pointer-events-none" />
             </div>
           )}
 
           {pagination && (
-            <div className="flex items-center gap-1 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[3px] px-2 py-1 text-xs text-[#495057] whitespace-nowrap">
+            <div className="flex items-center gap-2 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[4px] px-3 py-1.5 text-[14px] text-[#495057] whitespace-nowrap">
               <span>
                 <strong className="text-[#212529]">{startIdx}-{endIdx}</strong> / {pagination.totalRecords}
               </span>
-              <div className="flex items-center ml-1.5 border-l border-[#DEE2E6] pl-1 gap-0.5">
+              <div className="flex items-center ml-2 border-l border-[#DEE2E6] pl-2 gap-1">
                 <button
                   onClick={() => pagination.onPageChange(pagination.currentPage - 1)}
                   disabled={pagination.currentPage <= 1}
-                  className="p-0.5 rounded hover:bg-white text-[#212529] disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="p-1 rounded hover:bg-white text-[#212529] disabled:opacity-30 disabled:cursor-not-allowed"
                 >
-                  <ChevronLeft className="w-3.5 h-3.5" />
+                  <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => pagination.onPageChange(pagination.currentPage + 1)}
                   disabled={pagination.currentPage >= pagination.totalPages || pagination.totalPages === 0}
-                  className="p-0.5 rounded hover:bg-white text-[#212529] disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="p-1 rounded hover:bg-white text-[#212529] disabled:opacity-30 disabled:cursor-not-allowed"
                 >
-                  <ChevronRight className="w-3.5 h-3.5" />
+                  <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -115,18 +114,18 @@ export function OdooControlPanel({
       </div>
 
       {/* Bottom Row: Actions Bar & Filter Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-3">
         {/* Action Buttons */}
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           {primaryAction && (
             primaryAction.href ? (
               <Link href={primaryAction.href}>
-                <Button size="sm" variant="primary" leftIcon={primaryAction.icon || <Plus className="w-3.5 h-3.5" />}>
+                <Button size="sm" variant="primary" leftIcon={primaryAction.icon || <Plus className="w-4 h-4" />}>
                   {primaryAction.label}
                 </Button>
               </Link>
             ) : (
-              <Button size="sm" variant="primary" leftIcon={primaryAction.icon || <Plus className="w-3.5 h-3.5" />} onClick={primaryAction.onClick}>
+              <Button size="sm" variant="primary" leftIcon={primaryAction.icon || <Plus className="w-4 h-4" />} onClick={primaryAction.onClick}>
                 {primaryAction.label}
               </Button>
             )
@@ -135,7 +134,7 @@ export function OdooControlPanel({
           {secondaryActions?.map((act, idx) => (
             act.href ? (
               <Link key={idx} href={act.href}>
-                <Button size="sm" variant="secondary" leftIcon={act.icon}>
+                <Button key={idx} size="sm" variant="secondary" leftIcon={act.icon}>
                   {act.label}
                 </Button>
               </Link>
@@ -147,9 +146,9 @@ export function OdooControlPanel({
           ))}
         </div>
 
-        {/* Filters and Groupings (If provided) */}
+        {/* Filters and Groupings */}
         {filterComponent && (
-          <div className="flex-1 min-w-[240px]">
+          <div className="flex-1 min-w-[260px] flex items-center justify-start sm:justify-end">
             {filterComponent}
           </div>
         )}

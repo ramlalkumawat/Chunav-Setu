@@ -20,8 +20,9 @@
   body {
     background-color: #F7F7F7;
     color: #212529;
-    font-size: 14px;
-    line-height: 1.45;
+    font-family: var(--font-plus-jakarta), var(--font-noto-devanagari), system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -38,7 +39,7 @@
 
   ::-webkit-scrollbar-thumb {
     background: #CED4DA;
-    border-radius: 2px;
+    border-radius: 3px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
@@ -46,28 +47,29 @@
   }
 }
 
-/* Odoo-style table utilities */
+/* Odoo-style highly readable table utilities */
 .odoo-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .odoo-table th {
   background-color: #F8F9FA;
   color: #495057;
   font-weight: 600;
-  font-size: 12px;
-  padding: 8px 12px;
+  font-size: 14px;
+  padding: 11px 14px;
   border-bottom: 1px solid #DEE2E6;
   text-align: left;
   white-space: nowrap;
 }
 
 .odoo-table td {
-  padding: 8px 12px;
+  padding: 12px 14px;
   border-bottom: 1px solid #E9ECEF;
   color: #212529;
+  font-size: 15px;
   vertical-align: middle;
 }
 

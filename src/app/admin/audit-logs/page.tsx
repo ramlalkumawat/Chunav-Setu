@@ -2,11 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import { dbService } from "@/lib/store/data-service";
+import { useLanguage } from "@/lib/i18n";
 import { AuditLog } from "@/lib/types";
 import { OdooControlPanel } from "@/components/ui/OdooControlPanel";
 import { formatDateTime } from "@/lib/utils";
 
 export default function AdminAuditLogsPage() {
+  const { t } = useLanguage();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [search, setSearch] = useState("");
 
@@ -24,7 +26,7 @@ export default function AdminAuditLogsPage() {
   });
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {/* Odoo Control Panel */}
       <OdooControlPanel
         breadcrumb="System"
@@ -35,7 +37,7 @@ export default function AdminAuditLogsPage() {
         onSearchChange={setSearch}
       />
 
-      {/* Dense Odoo Table */}
+      {/* Readable Odoo Table */}
       <div className="bg-white border border-[#DEE2E6] rounded-[4px] overflow-hidden shadow-none">
         <div className="overflow-x-auto">
           <table className="odoo-table">
@@ -52,33 +54,33 @@ export default function AdminAuditLogsPage() {
             <tbody>
               {filteredLogs.map((log) => (
                 <tr key={log.id}>
-                  <td className="font-mono text-[11px] text-[#6C757D] whitespace-nowrap">
+                  <td className="font-mono text-xs text-[#6C757D] whitespace-nowrap">
                     {formatDateTime(log.created_at)}
                   </td>
-                  <td className="font-semibold text-xs text-[#714B67]">
+                  <td className="font-bold text-sm text-[#714B67]">
                     {log.action}
                   </td>
-                  <td className="text-xs font-medium text-[#212529]">
+                  <td className="text-[14px] font-semibold text-[#212529]">
                     {log.actor_name}
                   </td>
-                  <td className="text-xs text-[#495057]">
-                    {log.target_type} {log.target_id && <span className="font-mono text-[10px] text-[#6C757D]">({log.target_id})</span>}
+                  <td className="text-[14px] text-[#495057]">
+                    {log.target_type} {log.target_id && <span className="font-mono text-xs text-[#6C757D]">({log.target_id})</span>}
                   </td>
-                  <td className="text-xs">
+                  <td className="text-[14px]">
                     {log.client_name ? (
-                      <span className="font-medium text-[#212529]">{log.client_name}</span>
+                      <span className="font-bold text-[#212529]">{log.client_name}</span>
                     ) : (
                       <span className="text-[#ADB5BD]">System Cluster</span>
                     )}
                   </td>
-                  <td className="font-mono text-[11px] text-[#6C757D] max-w-xs truncate">
+                  <td className="font-mono text-xs text-[#6C757D] max-w-xs truncate">
                     {log.details ? JSON.stringify(log.details) : "—"}
                   </td>
                 </tr>
               ))}
               {filteredLogs.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-xs text-[#6C757D]">
+                  <td colSpan={6} className="text-center py-12 text-sm text-[#6C757D]">
                     No audit records found matching your search.
                   </td>
                 </tr>

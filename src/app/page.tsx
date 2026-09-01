@@ -14,7 +14,6 @@ import {
   CheckSquare,
   Smartphone,
   BarChart3,
-  Database,
   ArrowUpRight,
 } from "lucide-react";
 
@@ -87,10 +86,6 @@ export default function LandingPage() {
         {/* Hero Banner Sheet */}
         <div className="bg-white border border-[#DEE2E6] rounded-[4px] p-8 sm:p-10 shadow-none">
           <div className="max-w-3xl space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-[3px] bg-[#F1ECEF] border border-[#D9CAD5] text-xs font-bold text-[#714B67]">
-              <Database className="w-4 h-4" />
-              <span>Multi-Tenant PostgreSQL Architecture • RLS Isolated</span>
-            </div>
             <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#212529] leading-tight">
               Election Management & Field Operations System
             </h1>

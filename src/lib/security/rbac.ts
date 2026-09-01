@@ -16,6 +16,7 @@ const RBAC_MATRIX: Record<UserRole, Partial<Record<Resource, Action[]>>> = {
     follow_up: ["create", "read", "update", "delete", "manage"],
     report: ["read", "export"],
     audit_log: ["read", "manage"],
+    polling_day: ["create", "read", "update", "delete", "export", "manage"],
   },
 
   client_admin: {
@@ -29,6 +30,7 @@ const RBAC_MATRIX: Record<UserRole, Partial<Record<Resource, Action[]>>> = {
     follow_up: ["create", "read", "update", "delete"],
     report: ["read", "export"],
     audit_log: ["read"],
+    polling_day: ["create", "read", "update", "export", "manage"],
   },
 
   volunteer: {
@@ -36,6 +38,7 @@ const RBAC_MATRIX: Record<UserRole, Partial<Record<Resource, Action[]>>> = {
     task: ["read", "update"], // Can only view and complete assigned tasks
     field_activity: ["create", "read"], // Can record door-to-door canvassing
     follow_up: ["create", "read", "update"], // Can log and resolve assigned callbacks
+    polling_day: ["read", "update", "create"], // Can view assigned booth voters and record quick status / follow-up
   },
 };
 

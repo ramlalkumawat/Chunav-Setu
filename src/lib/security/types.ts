@@ -35,7 +35,8 @@ export type Resource =
   | "field_activity"
   | "follow_up"
   | "report"
-  | "audit_log";
+  | "audit_log"
+  | "polling_day";
 
 export type Action =
   | "create"

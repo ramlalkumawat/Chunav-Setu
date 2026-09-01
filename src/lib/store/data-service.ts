@@ -12,6 +12,13 @@ import {
   Subscription,
   AuditLog,
   PaginatedResult,
+  PollingDay,
+  PollingDayUpdate,
+  PollingDayFollowUp,
+  PollingDayBoothStats,
+  PollingDayVolunteerStats,
+  PollingDayDashboardStats,
+  PollingVoterStatus,
 } from "../types";
 import {
   INITIAL_PROFILES,
@@ -26,6 +33,9 @@ import {
   INITIAL_FOLLOW_UPS,
   INITIAL_SUBSCRIPTIONS,
   INITIAL_AUDIT_LOGS,
+  INITIAL_POLLING_DAYS,
+  INITIAL_POLLING_UPDATES,
+  INITIAL_POLLING_FOLLOWUPS,
 } from "./mock-data";
 
 const STORAGE_KEYS = {
@@ -41,6 +51,9 @@ const STORAGE_KEYS = {
   FOLLOW_UPS: "chunav_follow_ups",
   SUBSCRIPTIONS: "chunav_subscriptions",
   AUDIT_LOGS: "chunav_audit_logs",
+  POLLING_DAYS: "chunav_polling_days",
+  POLLING_UPDATES: "chunav_polling_updates",
+  POLLING_FOLLOWUPS: "chunav_polling_followups",
 };
 
 class DataService {
@@ -81,6 +94,9 @@ class DataService {
     localStorage.setItem(STORAGE_KEYS.FOLLOW_UPS, JSON.stringify(INITIAL_FOLLOW_UPS));
     localStorage.setItem(STORAGE_KEYS.SUBSCRIPTIONS, JSON.stringify(INITIAL_SUBSCRIPTIONS));
     localStorage.setItem(STORAGE_KEYS.AUDIT_LOGS, JSON.stringify(INITIAL_AUDIT_LOGS));
+    localStorage.setItem(STORAGE_KEYS.POLLING_DAYS, JSON.stringify(INITIAL_POLLING_DAYS));
+    localStorage.setItem(STORAGE_KEYS.POLLING_UPDATES, JSON.stringify(INITIAL_POLLING_UPDATES));
+    localStorage.setItem(STORAGE_KEYS.POLLING_FOLLOWUPS, JSON.stringify(INITIAL_POLLING_FOLLOWUPS));
   }
 
   // -------------------------------------------------------------------
@@ -817,6 +833,377 @@ class DataService {
       recentActivities: myActivities.slice(0, 5),
     };
   }
+
+  // -------------------------------------------------------------------
+  // POLLING DAY (मतदान दिवस) MODULE METHODS
+  // -------------------------------------------------------------------
+  public getPollingDay(clientId: string): PollingDay | null {
+    const days = this.getItem<PollingDay[]>(STORAGE_KEYS.POLLING_DAYS, INITIAL_POLLING_DAYS);
+    return days.find((d) => d.client_id === clientId) || null;
+  }
+
+  public configurePollingDay(clientId: string, data: Partial<PollingDay>): PollingDay {
+    const days = this.getItem<PollingDay[]>(STORAGE_KEYS.POLLING_DAYS, INITIAL_POLLING_DAYS);
+    const index = days.findIndex((d) => d.client_id === clientId);
+
+    const now = new Date().toISOString();
+    let configured: PollingDay;
+
+    if (index !== -1) {
+      days[index] = {
+        ...days[index],
+        ...data,
+        updated_at: now,
+      };
+      configured = days[index];
+    } else {
+      configured = {
+        id: `pd-${clientId}-${Date.now()}`,
+        client_id: clientId,
+        campaign_id: data.campaign_id || "campaign-1",
+        title: data.title || "General Election Polling Day",
+        polling_date: data.polling_date || "12 December 2026",
+        start_time: data.start_time || "07:00 AM",
+        end_time: data.end_time || "06:00 PM",
+        status: data.status || "active",
+        total_target_voters: data.total_target_voters || 12450,
+        created_at: now,
+        updated_at: now,
+      };
+      days.push(configured);
+    }
+
+    this.setItem(STORAGE_KEYS.POLLING_DAYS, days);
+    return configured;
+  }
+
+  public lockPollingDay(clientId: string): boolean {
+    const days = this.getItem<PollingDay[]>(STORAGE_KEYS.POLLING_DAYS, INITIAL_POLLING_DAYS);
+    const index = days.findIndex((d) => d.client_id === clientId);
+    if (index === -1) return false;
+    days[index].status = "completed";
+    days[index].updated_at = new Date().toISOString();
+    this.setItem(STORAGE_KEYS.POLLING_DAYS, days);
+    return true;
+  }
+
+  public getPollingDayDashboardStats(clientId: string): PollingDayDashboardStats {
+    const pollingDay = this.getPollingDay(clientId);
+    const voters = this.getItem<Voter[]>(STORAGE_KEYS.VOTERS, INITIAL_VOTERS).filter((v) => v.client_id === clientId);
+    const updates = this.getItem<PollingDayUpdate[]>(STORAGE_KEYS.POLLING_UPDATES, INITIAL_POLLING_UPDATES).filter(
+      (u) => u.client_id === clientId
+    );
+    const followUps = this.getItem<PollingDayFollowUp[]>(STORAGE_KEYS.POLLING_FOLLOWUPS, INITIAL_POLLING_FOLLOWUPS).filter(
+      (f) => f.client_id === clientId
+    );
+
+    const totalVoters = voters.length || pollingDay?.total_target_voters || 12450;
+    const votingReported = updates.filter((u) => u.status === "VOTING_REPORTED").length;
+    const followUpRequired = updates.filter((u) => u.status === "FOLLOW_UP_REQUIRED").length;
+    const statusReported = updates.length;
+    const pendingVoters = Math.max(0, totalVoters - statusReported);
+    const followUpsCount = followUps.filter((f) => f.status === "pending").length;
+    const turnoutPercentage = totalVoters > 0 ? Math.round((statusReported / totalVoters) * 100) : 0;
+
+    // Hourly Breakdown (8 AM - 5 PM)
+    const hours = [
+      { hour: "08", label: "8 AM", count: 420 },
+      { hour: "09", label: "9 AM", count: 680 },
+      { hour: "10", label: "10 AM", count: 950 },
+      { hour: "11", label: "11 AM", count: 1240 },
+      { hour: "12", label: "12 PM", count: 860 },
+      { hour: "13", label: "1 PM", count: 540 },
+      { hour: "14", label: "2 PM", count: 720 },
+      { hour: "15", label: "3 PM", count: 890 },
+      { hour: "16", label: "4 PM", count: 1050 },
+      { hour: "17", label: "5 PM", count: 600 },
+    ];
+
+    const boothStats = this.getPollingDayBoothStats(clientId);
+    const volunteerStats = this.getPollingDayVolunteerStats(clientId);
+
+    return {
+      pollingDay,
+      totalVoters,
+      statusReported,
+      votingActivityReported: votingReported,
+      pendingVoters,
+      followUpsCount,
+      turnoutPercentage,
+      hourlyActivity: hours,
+      recentUpdates: updates.slice(0, 10),
+      boothStats,
+      volunteerStats,
+    };
+  }
+
+  public getPollingDayBoothStats(
+    clientId: string,
+    filters?: { search?: string; boothId?: string; areaId?: string }
+  ): PollingDayBoothStats[] {
+    const booths = this.getBooths(clientId);
+    const voters = this.getItem<Voter[]>(STORAGE_KEYS.VOTERS, INITIAL_VOTERS).filter((v) => v.client_id === clientId);
+    const updates = this.getItem<PollingDayUpdate[]>(STORAGE_KEYS.POLLING_UPDATES, INITIAL_POLLING_UPDATES).filter(
+      (u) => u.client_id === clientId
+    );
+    const followUps = this.getItem<PollingDayFollowUp[]>(STORAGE_KEYS.POLLING_FOLLOWUPS, INITIAL_POLLING_FOLLOWUPS).filter(
+      (f) => f.client_id === clientId
+    );
+
+    let list: PollingDayBoothStats[] = booths.map((b) => {
+      const boothVoters = voters.filter((v) => v.booth_id === b.id);
+      const boothUpdates = updates.filter((u) => u.booth_id === b.id);
+      const boothFollowUps = followUps.filter((f) => f.booth_id === b.id && f.status === "pending");
+
+      const total = boothVoters.length || b.voter_count || 850;
+      const reported = boothUpdates.length;
+      const votingReported = boothUpdates.filter((u) => u.status === "VOTING_REPORTED").length;
+      const pending = Math.max(0, total - reported);
+      const progress = total > 0 ? Math.round((reported / total) * 100) : 0;
+
+      return {
+        booth_id: b.id,
+        booth_number: b.booth_number,
+        booth_name: b.booth_name,
+        area_name: b.area_name || "General Ward",
+        total_voters: total,
+        reported_count: reported,
+        voting_reported_count: votingReported,
+        pending_count: pending,
+        follow_up_count: boothFollowUps.length,
+        progress_percentage: progress,
+        assigned_volunteers_count: b.assigned_volunteers_count || 1,
+      };
+    });
+
+    if (filters?.search && filters.search.trim()) {
+      const q = filters.search.toLowerCase().trim();
+      list = list.filter(
+        (b) =>
+          b.booth_number.toLowerCase().includes(q) ||
+          b.booth_name.toLowerCase().includes(q) ||
+          b.area_name.toLowerCase().includes(q)
+      );
+    }
+
+    if (filters?.boothId && filters.boothId !== "all") {
+      list = list.filter((b) => b.booth_id === filters.boothId);
+    }
+
+    if (filters?.areaId && filters.areaId !== "all") {
+      list = list.filter((b) => b.area_name === filters.areaId);
+    }
+
+    return list;
+  }
+
+  public getPollingDayVolunteerStats(clientId: string): PollingDayVolunteerStats[] {
+    const volunteers = this.getVolunteers(clientId);
+    const updates = this.getItem<PollingDayUpdate[]>(STORAGE_KEYS.POLLING_UPDATES, INITIAL_POLLING_UPDATES).filter(
+      (u) => u.client_id === clientId
+    );
+    const followUps = this.getItem<PollingDayFollowUp[]>(STORAGE_KEYS.POLLING_FOLLOWUPS, INITIAL_POLLING_FOLLOWUPS).filter(
+      (f) => f.client_id === clientId
+    );
+
+    return volunteers.map((v) => {
+      const volUpdates = updates.filter((u) => u.volunteer_id === v.id || u.volunteer_name === v.name);
+      const volFollowUps = followUps.filter((f) => (f.volunteer_id === v.id || f.volunteer_name === v.name) && f.status === "pending");
+      const lastUpdate = volUpdates.length > 0 ? volUpdates[0].created_at : undefined;
+
+      return {
+        volunteer_id: v.id,
+        name: v.name,
+        mobile: v.mobile,
+        assigned_booth_id: v.assigned_booth_id || "booth-1",
+        assigned_booth_name: v.assigned_booth_name || "Booth 101",
+        assigned_area_name: v.assigned_area_name || "Shastri Nagar",
+        updates_today: volUpdates.length,
+        last_update_time: lastUpdate,
+        pending_followups: volFollowUps.length,
+        is_active: v.status === "active",
+      };
+    });
+  }
+
+  public getPollingDayVoters(
+    clientId: string,
+    volunteerId?: string,
+    filters?: {
+      search?: string;
+      status?: string;
+      boothId?: string;
+      page?: number;
+      pageSize?: number;
+    }
+  ): PaginatedResult<any> {
+    const voters = this.getItem<Voter[]>(STORAGE_KEYS.VOTERS, INITIAL_VOTERS).filter((v) => v.client_id === clientId);
+    const updates = this.getItem<PollingDayUpdate[]>(STORAGE_KEYS.POLLING_UPDATES, INITIAL_POLLING_UPDATES).filter(
+      (u) => u.client_id === clientId
+    );
+    const booths = this.getBooths(clientId);
+    const volunteer = volunteerId ? this.getVolunteerById(clientId, volunteerId) : undefined;
+
+    let list = voters;
+
+    // If volunteer context, scope to assigned booth
+    if (volunteer && volunteer.assigned_booth_id) {
+      list = list.filter((v) => v.booth_id === volunteer.assigned_booth_id);
+    } else if (filters?.boothId && filters.boothId !== "all") {
+      list = list.filter((v) => v.booth_id === filters.boothId);
+    }
+
+    // Attach latest polling day status
+    const updateMap = new Map<string, PollingDayUpdate>();
+    updates.forEach((u) => updateMap.set(u.voter_id, u));
+
+    let enriched = list.map((v) => {
+      const u = updateMap.get(v.id);
+      const booth = booths.find((b) => b.id === v.booth_id);
+      return {
+        ...v,
+        booth_number: booth?.booth_number || v.booth_number || "Booth 101",
+        booth_name: booth?.booth_name || v.booth_name || "Primary School",
+        area_name: booth?.area_name || v.area_name || "Shastri Nagar",
+        polling_status: (u?.status || "PENDING") as PollingVoterStatus,
+        last_polling_update_time: u?.created_at,
+        last_polling_note: u?.note,
+      };
+    });
+
+    // Search filter
+    if (filters?.search && filters.search.trim()) {
+      const q = filters.search.toLowerCase().trim();
+      enriched = enriched.filter(
+        (v) =>
+          v.name.toLowerCase().includes(q) ||
+          v.voter_id_card.toLowerCase().includes(q) ||
+          (v.mobile && v.mobile.includes(q)) ||
+          (v.address && v.address.toLowerCase().includes(q))
+      );
+    }
+
+    // Status filter
+    if (filters?.status && filters.status !== "ALL") {
+      enriched = enriched.filter((v) => v.polling_status === filters.status);
+    }
+
+    const total = enriched.length;
+    const page = filters?.page || 1;
+    const pageSize = filters?.pageSize || 20;
+    const totalPages = Math.ceil(total / pageSize) || 1;
+    const offset = (page - 1) * pageSize;
+    const pagedData = enriched.slice(offset, offset + pageSize);
+
+    return {
+      data: pagedData,
+      total,
+      page,
+      pageSize,
+      totalPages,
+    };
+  }
+
+  public updatePollingVoterStatus(
+    clientId: string,
+    voterId: string,
+    status: PollingVoterStatus,
+    volunteerId?: string,
+    note?: string
+  ): PollingDayUpdate {
+    const updates = this.getItem<PollingDayUpdate[]>(STORAGE_KEYS.POLLING_UPDATES, INITIAL_POLLING_UPDATES);
+    const voters = this.getItem<Voter[]>(STORAGE_KEYS.VOTERS, INITIAL_VOTERS);
+    const booths = this.getBooths(clientId);
+    const volunteer = volunteerId ? this.getVolunteerById(clientId, volunteerId) : undefined;
+    const voter = voters.find((v) => v.id === voterId && v.client_id === clientId);
+
+    const booth = booths.find((b) => b.id === (voter?.booth_id || volunteer?.assigned_booth_id));
+
+    const existingIndex = updates.findIndex((u) => u.voter_id === voterId && u.client_id === clientId);
+    const now = new Date().toISOString();
+
+    const record: PollingDayUpdate = {
+      id: existingIndex !== -1 ? updates[existingIndex].id : `pdu-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      client_id: clientId,
+      campaign_id: voter?.campaign_id || "campaign-1",
+      polling_day_id: `pd-${clientId}`,
+      voter_id: voterId,
+      voter_name: voter?.name || "Voter",
+      voter_id_card: voter?.voter_id_card || "VOT1000",
+      booth_id: booth?.id || "booth-1",
+      booth_number: booth?.booth_number || "Booth 101",
+      booth_name: booth?.booth_name || "Govt School",
+      area_name: booth?.area_name || "General Ward",
+      volunteer_id: volunteer?.id,
+      volunteer_name: volunteer?.name || "Field Volunteer",
+      status,
+      note,
+      updated_by: volunteer?.name || "Admin",
+      created_at: now,
+      updated_at: now,
+    };
+
+    if (existingIndex !== -1) {
+      updates[existingIndex] = record;
+    } else {
+      updates.unshift(record);
+    }
+
+    this.setItem(STORAGE_KEYS.POLLING_UPDATES, updates);
+    return record;
+  }
+
+  public createPollingFollowUp(
+    clientId: string,
+    data: Omit<PollingDayFollowUp, "id" | "created_at" | "status">
+  ): PollingDayFollowUp {
+    const followUps = this.getItem<PollingDayFollowUp[]>(STORAGE_KEYS.POLLING_FOLLOWUPS, INITIAL_POLLING_FOLLOWUPS);
+    const newFollowUp: PollingDayFollowUp = {
+      ...data,
+      id: `pdf-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      status: "pending",
+      created_at: new Date().toISOString(),
+    };
+    followUps.unshift(newFollowUp);
+    this.setItem(STORAGE_KEYS.POLLING_FOLLOWUPS, followUps);
+
+    // Also update the voter status to FOLLOW_UP_REQUIRED
+    this.updatePollingVoterStatus(
+      clientId,
+      data.voter_id,
+      "FOLLOW_UP_REQUIRED",
+      data.volunteer_id,
+      `${data.reason}: ${data.note || ""}`
+    );
+
+    return newFollowUp;
+  }
+
+  public resolvePollingFollowUp(clientId: string, followUpId: string): PollingDayFollowUp | null {
+    const followUps = this.getItem<PollingDayFollowUp[]>(STORAGE_KEYS.POLLING_FOLLOWUPS, INITIAL_POLLING_FOLLOWUPS);
+    const index = followUps.findIndex((f) => f.id === followUpId && f.client_id === clientId);
+    if (index === -1) return null;
+
+    followUps[index].status = "completed";
+    followUps[index].completed_at = new Date().toISOString();
+    this.setItem(STORAGE_KEYS.POLLING_FOLLOWUPS, followUps);
+    return followUps[index];
+  }
+
+  public getPollingDayFollowUps(clientId: string, volunteerId?: string): PollingDayFollowUp[] {
+    const followUps = this.getItem<PollingDayFollowUp[]>(STORAGE_KEYS.POLLING_FOLLOWUPS, INITIAL_POLLING_FOLLOWUPS);
+    let list = followUps.filter((f) => f.client_id === clientId);
+    if (volunteerId) {
+      list = list.filter((f) => f.volunteer_id === volunteerId);
+    }
+    return list;
+  }
+
+  public getPollingDayActivities(clientId: string, limit: number = 20): PollingDayUpdate[] {
+    const updates = this.getItem<PollingDayUpdate[]>(STORAGE_KEYS.POLLING_UPDATES, INITIAL_POLLING_UPDATES);
+    return updates.filter((u) => u.client_id === clientId).slice(0, limit);
+  }
 }
 
 export const dbService = new DataService();
+

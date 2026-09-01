@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useLanguage } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { Home, Users, CheckSquare, Clock, PlusCircle } from "lucide-react";
+import { Home, Users, CheckSquare, Clock, PlusCircle, Vote } from "lucide-react";
 
 export function MobileNav() {
   const pathname = usePathname();
@@ -13,10 +13,10 @@ export function MobileNav() {
 
   const navItems = [
     { name: t("navDashboard"), href: "/volunteer", icon: Home },
-    { name: t("navVoters"), href: "/volunteer/voters", icon: Users },
+    { name: t("navPollingDay"), href: "/volunteer/polling-day", icon: Vote },
     { name: t("navSurvey"), href: "/volunteer/survey", icon: PlusCircle, isPrimary: true },
+    { name: t("navVoters"), href: "/volunteer/voters", icon: Users },
     { name: t("navTasks"), href: "/volunteer/tasks", icon: CheckSquare },
-    { name: t("navFollowUps"), href: "/volunteer/follow-ups", icon: Clock },
   ];
 
   return (

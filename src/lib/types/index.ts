@@ -235,3 +235,107 @@ export interface PaginatedResult<T> {
   pageSize: number;
   totalPages: number;
 }
+
+// ---------------------------------------------------------------------
+// POLLING DAY (मतदान दिवस) MODULE TYPES
+// ---------------------------------------------------------------------
+export type PollingDayStatus = 'upcoming' | 'active' | 'completed';
+export type PollingVoterStatus = 'VOTING_REPORTED' | 'PENDING' | 'FOLLOW_UP_REQUIRED';
+
+export interface PollingDay {
+  id: string;
+  client_id: string;
+  campaign_id: string;
+  title: string;
+  polling_date: string;
+  start_time?: string;
+  end_time?: string;
+  status: PollingDayStatus;
+  total_target_voters?: number;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface PollingDayUpdate {
+  id: string;
+  client_id: string;
+  campaign_id: string;
+  polling_day_id: string;
+  voter_id: string;
+  voter_name: string;
+  voter_id_card: string;
+  booth_id: string;
+  booth_number: string;
+  booth_name: string;
+  area_name?: string;
+  volunteer_id?: string;
+  volunteer_name?: string;
+  status: PollingVoterStatus;
+  note?: string;
+  updated_by: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface PollingDayFollowUp {
+  id: string;
+  client_id: string;
+  campaign_id: string;
+  polling_day_id: string;
+  voter_id: string;
+  voter_name: string;
+  voter_id_card: string;
+  booth_id: string;
+  booth_number: string;
+  booth_name: string;
+  area_name?: string;
+  volunteer_id?: string;
+  volunteer_name?: string;
+  reason: string;
+  note?: string;
+  status: 'pending' | 'completed';
+  created_at: string;
+  completed_at?: string;
+}
+
+export interface PollingDayBoothStats {
+  booth_id: string;
+  booth_number: string;
+  booth_name: string;
+  area_name: string;
+  total_voters: number;
+  reported_count: number;
+  voting_reported_count: number;
+  pending_count: number;
+  follow_up_count: number;
+  progress_percentage: number;
+  assigned_volunteers_count: number;
+}
+
+export interface PollingDayVolunteerStats {
+  volunteer_id: string;
+  name: string;
+  mobile: string;
+  assigned_booth_id: string;
+  assigned_booth_name: string;
+  assigned_area_name: string;
+  updates_today: number;
+  last_update_time?: string;
+  pending_followups: number;
+  is_active: boolean;
+}
+
+export interface PollingDayDashboardStats {
+  pollingDay: PollingDay | null;
+  totalVoters: number;
+  statusReported: number;
+  votingActivityReported: number;
+  pendingVoters: number;
+  followUpsCount: number;
+  turnoutPercentage: number;
+  hourlyActivity: { hour: string; label: string; count: number }[];
+  recentUpdates: PollingDayUpdate[];
+  boothStats: PollingDayBoothStats[];
+  volunteerStats: PollingDayVolunteerStats[];
+}
+

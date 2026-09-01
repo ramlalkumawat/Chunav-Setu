@@ -1,4 +1,3 @@
-import { createSessionToken } from "../src/lib/security/auth";
 import { dbService } from "../src/lib/store/data-service";
 
 async function runPollingDayVerification() {

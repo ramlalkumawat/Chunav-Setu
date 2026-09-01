@@ -11,10 +11,10 @@ interface AuthContextValue {
   client: Client | null;
   volunteer: Volunteer | null;
   isLoading: boolean;
-  login: (email: string, role?: UserRole) => Promise<boolean>;
+  login: (email: string, role?: UserRole, password?: string) => Promise<boolean>;
   logout: () => void;
   switchRole: (role: UserRole, targetClientId?: string, volunteerId?: string) => void;
-  quickLoginDemo: (roleType: "super_admin" | "client_1" | "client_2" | "volunteer_1") => void;
+  quickLoginDemo: (roleType: "super_admin" | "client_1" | "client_2" | "volunteer_1") => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -31,95 +31,116 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Load session from storage on mount
+  // Load session from server API with fallback to local state
   useEffect(() => {
-    try {
-      const savedSession = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (savedSession) {
-        const parsedUser: UserProfile = JSON.parse(savedSession);
-        setUser(parsedUser);
-        setRole(parsedUser.role);
-
-        if (parsedUser.client_id) {
-          const clientData = dbService.getClientById(parsedUser.client_id);
-          setClient(clientData || null);
-
-          if (parsedUser.role === "volunteer") {
-            const vols = dbService.getVolunteers(parsedUser.client_id);
-            const vol = vols.find((v) => v.user_id === parsedUser.id || v.email === parsedUser.email);
-            setVolunteer(vol || (vols.length > 0 ? vols[0] : null));
+    async function initAuth() {
+      try {
+        const res = await fetch("/api/auth/session");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.authenticated && data.user) {
+            setUser(data.user);
+            setRole(data.role);
+            setClient(data.client);
+            setVolunteer(data.volunteer);
+            localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data.user));
+            setIsLoading(false);
+            return;
           }
         }
-      } else {
-        // Default seed to Super Admin session for immediate evaluation convenience
-        const defaultUser = dbService.getProfiles().find((p) => p.role === "client_admin") || dbService.getProfiles()[0];
-        if (defaultUser) {
-          setUser(defaultUser);
-          setRole(defaultUser.role);
-          if (defaultUser.client_id) {
-            const c = dbService.getClientById(defaultUser.client_id);
-            setClient(c || null);
-          }
-          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(defaultUser));
-        }
+      } catch (err) {
+        console.warn("Session check fallback to local storage:", err);
       }
-    } catch (e) {
-      console.error("Auth init error:", e);
-    } finally {
-      setIsLoading(false);
+
+      // Fallback local seed for offline/dev
+      try {
+        const savedSession = localStorage.getItem(AUTH_STORAGE_KEY);
+        if (savedSession) {
+          const parsedUser: UserProfile = JSON.parse(savedSession);
+          setUser(parsedUser);
+          setRole(parsedUser.role);
+
+          if (parsedUser.client_id) {
+            const clientData = dbService.getClientById(parsedUser.client_id);
+            setClient(clientData || null);
+
+            if (parsedUser.role === "volunteer") {
+              const vols = dbService.getVolunteers(parsedUser.client_id);
+              const vol = vols.find((v) => v.user_id === parsedUser.id || v.email === parsedUser.email);
+              setVolunteer(vol || (vols.length > 0 ? vols[0] : null));
+            }
+          }
+        } else {
+          const defaultUser = dbService.getProfiles().find((p) => p.role === "client_admin") || dbService.getProfiles()[0];
+          if (defaultUser) {
+            setUser(defaultUser);
+            setRole(defaultUser.role);
+            if (defaultUser.client_id) {
+              const c = dbService.getClientById(defaultUser.client_id);
+              setClient(c || null);
+            }
+            localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(defaultUser));
+          }
+        }
+      } catch (e) {
+        console.error("Auth init error:", e);
+      } finally {
+        setIsLoading(false);
+      }
     }
+
+    initAuth();
   }, []);
 
-  const login = useCallback(async (email: string, forceRole?: UserRole): Promise<boolean> => {
+  const login = useCallback(async (email: string, forceRole?: UserRole, password?: string): Promise<boolean> => {
     setIsLoading(true);
     try {
+      // Server-side auth request
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password: password || "Chunav@2026", forceRole }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          setUser(data.user);
+          setRole(data.user.role);
+          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data.user));
+
+          if (data.user.client_id) {
+            const clientData = dbService.getClientById(data.user.client_id);
+            setClient(clientData || null);
+
+            if (data.user.role === "volunteer") {
+              const vols = dbService.getVolunteers(data.user.client_id);
+              const vol = vols.find((v: any) => v.user_id === data.user?.id || v.email === data.user?.email);
+              setVolunteer(vol || (vols.length > 0 ? vols[0] : null));
+            }
+          } else {
+            setClient(null);
+            setVolunteer(null);
+          }
+
+          if (data.user.role === "super_admin") {
+            router.push("/admin");
+          } else if (data.user.role === "volunteer") {
+            router.push("/volunteer");
+          } else {
+            router.push("/client");
+          }
+
+          return true;
+        }
+      }
+
+      // Fallback
       const profiles = dbService.getProfiles();
-      let matchedProfile = profiles.find((p) => p.email.toLowerCase() === email.toLowerCase());
-
-      if (!matchedProfile && forceRole) {
-        matchedProfile = profiles.find((p) => p.role === forceRole);
-      }
-
-      if (!matchedProfile) {
-        // Fallback default
-        matchedProfile = {
-          id: `user-${Date.now()}`,
-          email,
-          full_name: email.split("@")[0].replace(".", " "),
-          role: forceRole || "client_admin",
-          client_id: "client-1",
-          status: "active",
-          created_at: new Date().toISOString(),
-        };
-      }
-
+      let matchedProfile = profiles.find((p) => p.email.toLowerCase() === email.toLowerCase()) || profiles.find((p) => p.role === forceRole) || profiles[0];
       setUser(matchedProfile);
       setRole(matchedProfile.role);
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(matchedProfile));
-
-      if (matchedProfile.client_id) {
-        const clientData = dbService.getClientById(matchedProfile.client_id);
-        setClient(clientData || null);
-
-        if (matchedProfile.role === "volunteer") {
-          const vols = dbService.getVolunteers(matchedProfile.client_id);
-          const vol = vols.find((v) => v.user_id === matchedProfile?.id || v.email === matchedProfile?.email);
-          setVolunteer(vol || (vols.length > 0 ? vols[0] : null));
-        }
-      } else {
-        setClient(null);
-        setVolunteer(null);
-      }
-
-      // Role-based redirection
-      if (matchedProfile.role === "super_admin") {
-        router.push("/admin");
-      } else if (matchedProfile.role === "volunteer") {
-        router.push("/volunteer");
-      } else {
-        router.push("/client");
-      }
-
       return true;
     } catch (err) {
       console.error("Login failed:", err);
@@ -129,7 +150,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [router]);
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch (e) {
+      console.warn("Logout API call error:", e);
+    }
     setUser(null);
     setRole(null);
     setClient(null);
@@ -138,61 +164,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/login");
   }, [router]);
 
-  const switchRole = useCallback(
-    (newRole: UserRole, targetClientId?: string, volunteerId?: string) => {
-      const profiles = dbService.getProfiles();
-      let targetUser: UserProfile | undefined;
+  const quickLoginDemo = useCallback(async (roleType: "super_admin" | "client_1" | "client_2" | "volunteer_1") => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/auth/demo-switch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roleType }),
+      });
 
-      if (newRole === "super_admin") {
-        targetUser = profiles.find((p) => p.role === "super_admin");
-      } else if (newRole === "client_admin") {
-        targetUser = profiles.find((p) => p.role === "client_admin" && (!targetClientId || p.client_id === targetClientId));
-      } else if (newRole === "volunteer") {
-        targetUser = profiles.find((p) => p.role === "volunteer" && (!targetClientId || p.client_id === targetClientId));
-      }
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          setUser(data.user);
+          setRole(data.user.role);
+          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data.user));
 
-      if (targetUser) {
-        setUser(targetUser);
-        setRole(targetUser.role);
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(targetUser));
+          if (data.user.client_id) {
+            const clientData = dbService.getClientById(data.user.client_id);
+            setClient(clientData || null);
 
-        if (targetUser.client_id) {
-          const clientData = dbService.getClientById(targetUser.client_id);
-          setClient(clientData || null);
-
-          if (targetUser.role === "volunteer") {
-            const vols = dbService.getVolunteers(targetUser.client_id);
-            const vol = volunteerId ? vols.find((v) => v.id === volunteerId) : vols[0];
-            setVolunteer(vol || null);
+            if (data.user.role === "volunteer") {
+              const vols = dbService.getVolunteers(data.user.client_id);
+              const vol = vols.find((v: any) => v.user_id === data.user?.id || v.email === data.user?.email);
+              setVolunteer(vol || (vols.length > 0 ? vols[0] : null));
+            } else {
+              setVolunteer(null);
+            }
           } else {
+            setClient(null);
             setVolunteer(null);
           }
-        } else {
-          setClient(null);
-          setVolunteer(null);
+
+          if (data.user.role === "super_admin") {
+            router.push("/admin");
+          } else if (data.user.role === "volunteer") {
+            router.push("/volunteer");
+          } else {
+            router.push("/client");
+          }
+          return;
         }
+      }
+    } catch (err) {
+      console.error("Quick demo login error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [router]);
 
-        if (newRole === "super_admin") router.push("/admin");
-        else if (newRole === "volunteer") router.push("/volunteer");
-        else router.push("/client");
+  const switchRole = useCallback(
+    (newRole: UserRole, targetClientId?: string) => {
+      if (newRole === "super_admin") {
+        quickLoginDemo("super_admin");
+      } else if (newRole === "volunteer") {
+        quickLoginDemo("volunteer_1");
+      } else if (targetClientId === "client-2") {
+        quickLoginDemo("client_2");
+      } else {
+        quickLoginDemo("client_1");
       }
     },
-    [router]
-  );
-
-  const quickLoginDemo = useCallback(
-    (roleType: "super_admin" | "client_1" | "client_2" | "volunteer_1") => {
-      if (roleType === "super_admin") {
-        switchRole("super_admin");
-      } else if (roleType === "client_1") {
-        switchRole("client_admin", "client-1");
-      } else if (roleType === "client_2") {
-        switchRole("client_admin", "client-2");
-      } else if (roleType === "volunteer_1") {
-        switchRole("volunteer", "client-1", "vol-1");
-      }
-    },
-    [switchRole]
+    [quickLoginDemo]
   );
 
   return (
@@ -215,9 +248,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) {
+  const context = useContext(AuthContext);
+  if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
-  return ctx;
+  return context;
 }

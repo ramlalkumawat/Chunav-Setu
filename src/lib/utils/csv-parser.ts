@@ -135,19 +135,23 @@ export function parseVoterCsv(csvText: string, existingVoterCards: Set<string> =
   };
 }
 
+export function sanitizeCsvCellExport(val: unknown): string {
+  if (val === undefined || val === null) return '""';
+  let str = String(val);
+  const DANGEROUS_PREFIXES = ["=", "+", "-", "@", "\t", "\r"];
+  if (DANGEROUS_PREFIXES.some((prefix) => str.startsWith(prefix))) {
+    str = `'${str}`;
+  }
+  return `"${str.replace(/"/g, '""')}"`;
+}
+
 export function exportToCsv(filename: string, headers: string[], rows: (string | number | undefined | null)[][]): void {
   const csvContent = [
-    headers.map((h) => `"${h.replace(/"/g, '""')}"`).join(","),
+    headers.map((h) => sanitizeCsvCellExport(h)).join(","),
     ...rows.map((row) =>
-      row
-        .map((val) => {
-          if (val === undefined || val === null) return '""';
-          const str = String(val).replace(/"/g, '""');
-          return `"${str}"`;
-        })
-        .join(",")
+      row.map((val) => sanitizeCsvCellExport(val)).join(",")
     ),
-  ].join("\n");
+  ].join("\r\n");
 
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
@@ -159,3 +163,4 @@ export function exportToCsv(filename: string, headers: string[], rows: (string |
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+

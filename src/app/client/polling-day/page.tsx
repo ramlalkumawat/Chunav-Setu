@@ -71,19 +71,23 @@ export default function PollingDayDashboardPage() {
   });
 
   const loadDashboard = useCallback(() => {
-    const data = dbService.getPollingDayDashboardStats(clientId);
-    setStats(data);
-    setBoothsList(dbService.getBooths(clientId));
-    setAreasList(dbService.getAreas(clientId));
+    try {
+      const data = dbService.getPollingDayDashboardStats(clientId);
+      setStats(data);
+      setBoothsList(dbService.getBooths(clientId));
+      setAreasList(dbService.getAreas(clientId));
 
-    if (data.pollingDay) {
-      setConfigForm({
-        title: data.pollingDay.title,
-        polling_date: data.pollingDay.polling_date,
-        start_time: data.pollingDay.start_time || "07:00 AM",
-        end_time: data.pollingDay.end_time || "06:00 PM",
-        total_target_voters: String(data.pollingDay.total_target_voters || 12450),
-      });
+      if (data && data.pollingDay) {
+        setConfigForm({
+          title: data.pollingDay.title,
+          polling_date: data.pollingDay.polling_date,
+          start_time: data.pollingDay.start_time || "07:00 AM",
+          end_time: data.pollingDay.end_time || "06:00 PM",
+          total_target_voters: String(data.pollingDay.total_target_voters || 12450),
+        });
+      }
+    } catch (err) {
+      console.error("Failed to load dashboard stats:", err);
     }
   }, [clientId]);
 
@@ -141,7 +145,16 @@ export default function PollingDayDashboardPage() {
     }
   };
 
-  if (!stats) return null;
+  if (!stats) {
+    return (
+      <div className="min-h-[400px] flex items-center justify-center bg-white border border-[#DEE2E6] rounded-[4px]">
+        <div className="text-center space-y-2">
+          <div className="w-8 h-8 border-2 border-[#714B67] border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-xs sm:text-sm text-[#6C757D] font-medium">Loading Polling Day War Room Telemetry...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Filtered booth stats
   const filteredBooths = (stats.boothStats || []).filter((b: any) => {

@@ -54,22 +54,30 @@ export function getInitials(name: string): string {
     .toUpperCase();
 }
 
+/**
+ * Odoo ERP status badge helper - subtle light backgrounds with crisp readable text
+ */
 export function getStatusBadge(status: string) {
   switch (status.toLowerCase()) {
     case "active":
     case "completed":
     case "favorable":
     case "contacted":
+    case "verified":
+    case "resolved":
+    case "delivered":
       return {
-        bg: "bg-[#EAF3EE] text-[#2F6B4F] border-[#C3DEC9]",
+        bg: "bg-[#E8F5E9] text-[#2E7D32] border-[#C8E6C9]",
         label: status.replace("_", " "),
       };
     case "pending":
     case "in_progress":
     case "undecided":
     case "trialing":
+    case "follow_up":
+    case "medium":
       return {
-        bg: "bg-[#FEF7EC] text-[#B7791F] border-[#FBE3B8]",
+        bg: "bg-[#FFF3E0] text-[#E65100] border-[#FFE0B2]",
         label: status.replace("_", " "),
       };
     case "urgent":
@@ -78,17 +86,26 @@ export function getStatusBadge(status: string) {
     case "past_due":
     case "suspended":
     case "cancelled":
+    case "overdue":
       return {
-        bg: "bg-[#FDF2F2] text-[#B94A48] border-[#F7C6C6]",
+        bg: "bg-[#FFEBEE] text-[#C62828] border-[#FFCDD2]",
+        label: status.replace("_", " "),
+      };
+    case "assigned":
+    case "info":
+    case "canvassed":
+      return {
+        bg: "bg-[#E7F1FF] text-[#0D6EFD] border-[#B6D4FE]",
         label: status.replace("_", " "),
       };
     case "uncontacted":
     case "not_available":
     case "inactive":
     case "draft":
+    case "none":
     default:
       return {
-        bg: "bg-[#F1F3F5] text-[#64748B] border-[#E2E8F0]",
+        bg: "bg-[#F8F9FA] text-[#495057] border-[#DEE2E6]",
         label: status.replace("_", " "),
       };
   }

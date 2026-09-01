@@ -25,28 +25,29 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
+    // Odoo ERP standard buttons: compact 34-38px height, 4px radius, clear crisp borders
     const baseStyles =
-      "inline-flex items-center justify-center font-medium transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none rounded-[8px]";
+      "inline-flex items-center justify-center font-medium transition-colors duration-150 focus:outline-none focus:ring-1 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed select-none rounded-[4px] text-sm";
 
     const sizeStyles = {
-      sm: "text-xs px-3 py-1.5 gap-1.5",
-      md: "text-sm px-4 py-2 gap-2",
-      lg: "text-base px-5 py-2.5 gap-2.5",
+      sm: "h-8 px-2.5 text-xs gap-1.5",
+      md: "h-9 px-3.5 text-sm gap-2",
+      lg: "h-10 px-4 text-sm gap-2",
     };
 
     const variantStyles = {
       primary:
-        "bg-[#1F3A5F] hover:bg-[#172E4C] text-white focus:ring-[#1F3A5F] shadow-sm active:bg-[#12233A]",
+        "bg-[#714B67] hover:bg-[#5E3E55] active:bg-[#4D3145] text-white border border-[#714B67] focus:ring-[#714B67] shadow-none",
       secondary:
-        "bg-[#EAEFF5] hover:bg-[#DCE6F1] text-[#1F3A5F] focus:ring-[#1F3A5F]",
+        "bg-white hover:bg-[#F8F9FA] active:bg-[#E9ECEF] text-[#212529] border border-[#DEE2E6] focus:ring-[#714B67] shadow-none",
       outline:
-        "border border-[#E5E2DC] bg-white hover:bg-[#F7F6F2] text-[#172033] focus:ring-[#1F3A5F]",
+        "bg-white hover:bg-[#F8F9FA] active:bg-[#E9ECEF] text-[#212529] border border-[#DEE2E6] focus:ring-[#714B67] shadow-none",
       danger:
-        "bg-[#B94A48] hover:bg-[#9B3937] text-white focus:ring-[#B94A48] shadow-sm",
+        "bg-[#C62828] hover:bg-[#B71C1C] text-white border border-[#C62828] focus:ring-[#C62828] shadow-none",
       success:
-        "bg-[#2F6B4F] hover:bg-[#25563F] text-white focus:ring-[#2F6B4F] shadow-sm",
+        "bg-[#2E7D32] hover:bg-[#1B5E20] text-white border border-[#2E7D32] focus:ring-[#2E7D32] shadow-none",
       ghost:
-        "text-[#64748B] hover:text-[#172033] hover:bg-[#F0EDE8] focus:ring-slate-400",
+        "bg-transparent hover:bg-[#F8F9FA] text-[#6C757D] hover:text-[#212529] border border-transparent focus:ring-slate-300",
     };
 
     return (
@@ -56,7 +57,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className={cn(baseStyles, sizeStyles[size], variantStyles[variant], className)}
         {...props}
       >
-        {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+        {isLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
         {!isLoading && leftIcon && <span className="flex-shrink-0">{leftIcon}</span>}
         <span>{children}</span>
         {!isLoading && rightIcon && <span className="flex-shrink-0">{rightIcon}</span>}

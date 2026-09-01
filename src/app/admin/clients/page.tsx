@@ -5,24 +5,21 @@ import { dbService } from "@/lib/store/data-service";
 import { useAuth } from "@/lib/context/auth-context";
 import { useToast } from "@/lib/context/toast-context";
 import { Client } from "@/lib/types";
-import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { OdooControlPanel } from "@/components/ui/OdooControlPanel";
 import { formatDate } from "@/lib/utils";
 import {
   Plus,
   Search,
-  Building2,
+  Building,
   Edit2,
   Power,
   ArrowUpRight,
-  UserCheck,
-  Users,
-  Eye,
 } from "lucide-react";
 
 export default function AdminClientsPage() {
@@ -155,110 +152,95 @@ export default function AdminClientsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#172033] tracking-tight">
-            Client & Tenant Management
-          </h1>
-          <p className="text-xs text-[#64748B] mt-0.5">
-            Create, configure, and isolate election campaigns across candidates
-          </p>
-        </div>
+    <div className="space-y-3">
+      {/* Odoo Control Panel */}
+      <OdooControlPanel
+        breadcrumb="System"
+        title="Client Instances"
+        subtitle="Manage candidate accounts, provision new databases, and inspect tenant quotas"
+        primaryAction={{
+          label: "Provision Client",
+          onClick: handleOpenCreate,
+          icon: <Plus className="w-3.5 h-3.5" />,
+        }}
+        searchPlaceholder="Search client, candidate, constituency..."
+        searchValue={search}
+        onSearchChange={setSearch}
+        filterComponent={
+          <div className="w-full sm:w-48">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full h-8 bg-white border border-[#DEE2E6] rounded-[3px] text-xs px-2 text-[#212529] focus:outline-none focus:border-[#714B67]"
+            >
+              <option value="all">All Statuses</option>
+              <option value="active">Active Only</option>
+              <option value="inactive">Inactive Only</option>
+            </select>
+          </div>
+        }
+      />
 
-        <Button size="sm" leftIcon={<Plus className="w-4 h-4" />} onClick={handleOpenCreate}>
-          Provision New Client
-        </Button>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center gap-3">
-        <div className="w-full sm:w-80">
-          <Input
-            placeholder="Search by client, candidate, location..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            leftIcon={<Search className="w-4 h-4" />}
-          />
-        </div>
-
-        <div className="w-full sm:w-48">
-          <Select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            options={[
-              { value: "all", label: "All Statuses" },
-              { value: "active", label: "Active Only" },
-              { value: "inactive", label: "Inactive Only" },
-            ]}
-          />
-        </div>
-      </div>
-
-      {/* Clients Table */}
-      <Card padding="none">
+      {/* Dense Odoo Table */}
+      <div className="bg-white border border-[#DEE2E6] rounded-[4px] overflow-hidden shadow-none">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-[#FAFAF8] text-[#64748B] font-semibold border-b border-[#E5E2DC] uppercase tracking-wider">
+          <table className="odoo-table">
+            <thead>
               <tr>
-                <th className="px-5 py-3">Client Name</th>
-                <th className="px-5 py-3">Candidate</th>
-                <th className="px-5 py-3">Campaign Details</th>
-                <th className="px-5 py-3 text-center">Volunteers</th>
-                <th className="px-5 py-3 text-center">Voters</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3">Created</th>
-                <th className="px-5 py-3 text-right">Actions</th>
+                <th>Tenant Organization</th>
+                <th>Candidate Full Name</th>
+                <th>Campaign & Location</th>
+                <th className="text-center">Volunteers</th>
+                <th className="text-center">Electors</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th className="text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E5E2DC] text-[#172033]">
+            <tbody>
               {filteredClients.map((client) => (
-                <tr key={client.id} className="hover:bg-[#F7F6F2]/50 transition-colors">
-                  <td className="px-5 py-4">
-                    <p className="font-bold text-[#172033]">{client.name}</p>
-                    <p className="text-[11px] text-[#64748B]">{client.email}</p>
-                    <p className="text-[11px] text-[#64748B]">{client.mobile}</p>
+                <tr key={client.id}>
+                  <td>
+                    <p className="font-semibold text-[#212529]">{client.name}</p>
+                    <p className="text-[11px] text-[#6C757D]">{client.email} • {client.mobile}</p>
                   </td>
-                  <td className="px-5 py-4">
-                    <p className="font-semibold text-[#172033]">{client.candidate_name}</p>
-                  </td>
-                  <td className="px-5 py-4">
-                    <p className="font-semibold text-[#1F3A5F]">{client.campaign_name}</p>
-                    <p className="text-[11px] text-[#64748B]">
+                  <td className="text-xs font-medium text-[#212529]">{client.candidate_name}</td>
+                  <td className="text-xs">
+                    <p className="font-medium text-[#714B67]">{client.campaign_name}</p>
+                    <p className="text-[11px] text-[#6C757D]">
                       {client.election_type} • {client.location}
                     </p>
                   </td>
-                  <td className="px-5 py-4 text-center font-bold">{client.volunteer_count || 0}</td>
-                  <td className="px-5 py-4 text-center font-bold">{client.voter_count || 0}</td>
-                  <td className="px-5 py-4">
+                  <td className="text-center text-xs font-semibold">{client.volunteer_count || 0}</td>
+                  <td className="text-center text-xs font-semibold">{client.voter_count || 0}</td>
+                  <td>
                     <Badge status={client.status} size="sm" />
                   </td>
-                  <td className="px-5 py-4 text-[#64748B]">{formatDate(client.created_at)}</td>
-                  <td className="px-5 py-4 text-right">
+                  <td className="text-xs text-[#6C757D] font-mono">{formatDate(client.created_at)}</td>
+                  <td className="text-right">
                     <div className="flex items-center justify-end gap-1.5">
                       <button
                         onClick={() => switchRole("client_admin", client.id)}
-                        className="p-1.5 rounded hover:bg-[#EAEFF5] text-[#1F3A5F]"
-                        title="Enter Client Dashboard"
+                        className="p-1 rounded hover:bg-[#F1ECEF] text-[#714B67]"
+                        title="Enter Tenant Portal"
                       >
-                        <ArrowUpRight className="w-4 h-4" />
+                        <ArrowUpRight className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => handleOpenEdit(client)}
-                        className="p-1.5 rounded hover:bg-[#F7F6F2] text-[#64748B] hover:text-[#172033]"
+                        className="p-1 rounded hover:bg-[#F8F9FA] text-[#6C757D] hover:text-[#212529]"
                         title="Edit Client"
                       >
-                        <Edit2 className="w-4 h-4" />
+                        <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => setStatusDialogClient(client)}
-                        className={`p-1.5 rounded hover:bg-[#F7F6F2] ${
-                          client.status === "active" ? "text-[#2F6B4F]" : "text-[#B94A48]"
+                        className={`p-1 rounded hover:bg-[#F8F9FA] ${
+                          client.status === "active" ? "text-[#2E7D32]" : "text-[#C62828]"
                         }`}
                         title={client.status === "active" ? "Deactivate Client" : "Activate Client"}
                       >
-                        <Power className="w-4 h-4" />
+                        <Power className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </td>
@@ -266,38 +248,38 @@ export default function AdminClientsPage() {
               ))}
               {filteredClients.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-5 py-8 text-center text-xs text-[#64748B]">
-                    No clients found matching the search criteria.
+                  <td colSpan={8} className="text-center py-8 text-xs text-[#6C757D]">
+                    No client instances found matching your search.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
 
       {/* Create / Edit Client Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingClient ? "Edit Client Campaign" : "Provision New Client"}
-        subtitle="Configure candidate campaign details and tenant settings"
+        title={editingClient ? `Edit Client: ${editingClient.name}` : "Provision Candidate Account"}
+        subtitle="Multi-Tenant Database Configuration Sheet"
         maxWidth="lg"
         footer={
           <>
-            <Button variant="outline" size="sm" onClick={() => setIsModalOpen(false)}>
-              Cancel
+            <Button variant="secondary" size="sm" onClick={() => setIsModalOpen(false)}>
+              Discard
             </Button>
-            <Button size="sm" onClick={handleSaveClient}>
-              {editingClient ? "Save Changes" : "Provision Client"}
+            <Button size="sm" variant="primary" onClick={handleSaveClient}>
+              {editingClient ? "Save Changes" : "Provision Instance"}
             </Button>
           </>
         }
       >
-        <form onSubmit={handleSaveClient} className="space-y-3.5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <form onSubmit={handleSaveClient} className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <Input
-              label="Client / Committee Name"
+              label="Organization / Committee Name"
               placeholder="Sharma Campaign HQ"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -312,7 +294,7 @@ export default function AdminClientsPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <Input
               label="Contact Mobile"
               placeholder="+91 98201 12345"
@@ -331,14 +313,14 @@ export default function AdminClientsPage() {
           </div>
 
           <Input
-            label="Campaign Name"
+            label="Campaign Title"
             placeholder="Central Assembly Campaign 2026"
             value={formData.campaign_name}
             onChange={(e) => setFormData({ ...formData, campaign_name: e.target.value })}
             required
           />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <Select
               label="Election Type"
               value={formData.election_type}
@@ -346,7 +328,7 @@ export default function AdminClientsPage() {
               options={[
                 { value: "Vidhan Sabha", label: "Vidhan Sabha (Assembly)" },
                 { value: "Lok Sabha", label: "Lok Sabha (Parliament)" },
-                { value: "Municipal Corporation", label: "Municipal Corporation (Nagar Nigam)" },
+                { value: "Municipal Corporation", label: "Municipal Corporation" },
                 { value: "Panchayat", label: "Panchayat / Zilla Parishad" },
               ]}
             />
@@ -371,7 +353,7 @@ export default function AdminClientsPage() {
         </form>
       </Modal>
 
-      {/* Confirm Deactivation / Activation Dialog */}
+      {/* Confirm Deactivation Dialog */}
       {statusDialogClient && (
         <ConfirmDialog
           isOpen={true}

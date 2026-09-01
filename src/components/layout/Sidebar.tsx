@@ -19,7 +19,6 @@ import {
   CreditCard,
   History,
   Flag,
-  FileSpreadsheet,
   X,
 } from "lucide-react";
 
@@ -39,13 +38,13 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
   const clientAdminNav = [
     { name: "Dashboard", href: "/client", icon: LayoutDashboard },
     { name: "Voters", href: "/client/voters", icon: Users },
-    { name: "Booths & Areas", href: "/client/booths", icon: Building },
+    { name: "Booths", href: "/client/booths", icon: Building },
     { name: "Volunteers", href: "/client/volunteers", icon: UserCheck },
     { name: "Tasks", href: "/client/tasks", icon: CheckSquare },
     { name: "Field Work", href: "/client/field-work", icon: Compass },
     { name: "Follow-ups", href: "/client/follow-ups", icon: Clock },
     { name: "Reports", href: "/client/reports", icon: BarChart3 },
-    { name: "Campaign Settings", href: "/client/settings", icon: Settings },
+    { name: "Settings", href: "/client/settings", icon: Settings },
   ];
 
   const navItems = role === "super_admin" ? superAdminNav : clientAdminNav;
@@ -55,51 +54,53 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
       {/* Mobile Drawer Backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-[#172033]/40 backdrop-blur-[2px] z-40 lg:hidden"
+          className="fixed inset-0 bg-black/30 z-40 lg:hidden"
           onClick={onClose}
         />
       )}
 
       <aside
         className={cn(
-          "fixed top-0 bottom-0 left-0 z-40 w-64 bg-white border-r border-[#E5E2DC] flex flex-col transition-transform duration-200 lg:translate-x-0 lg:static",
+          "fixed top-0 bottom-0 left-0 z-40 w-56 bg-white border-r border-[#DEE2E6] flex flex-col transition-transform duration-150 lg:translate-x-0 lg:static",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        {/* Sidebar Header */}
-        <div className="h-16 px-5 border-b border-[#E5E2DC] flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#1F3A5F] flex items-center justify-center text-white font-black text-sm">
+        {/* Sidebar Header / Brand */}
+        <div className="h-12 px-4 border-b border-[#DEE2E6] flex items-center justify-between bg-white">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-[3px] bg-[#714B67] flex items-center justify-center text-white font-bold text-xs">
               CS
             </div>
             <div>
-              <p className="font-bold text-sm text-[#172033] leading-none">CHUNAV SETU</p>
-              <p className="text-[10px] text-[#64748B] mt-1 font-medium">
-                {role === "super_admin" ? "Super Admin Portal" : "Campaign Command"}
+              <p className="font-bold text-xs text-[#212529] tracking-tight leading-none">
+                CHUNAV SETU
+              </p>
+              <p className="text-[10px] text-[#6C757D] font-medium mt-0.5">
+                {role === "super_admin" ? "Enterprise Admin" : "Campaign ERP"}
               </p>
             </div>
           </div>
           {onClose && (
             <button
               onClick={onClose}
-              className="lg:hidden p-1 text-[#64748B] hover:text-[#172033]"
+              className="lg:hidden p-1 text-[#6C757D] hover:text-[#212529] rounded"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           )}
         </div>
 
-        {/* Tenant Summary Pill (If Client Admin) */}
+        {/* Campaign Info Pill (Compact) */}
         {client && role !== "super_admin" && (
-          <div className="px-4 pt-4 pb-1">
-            <div className="p-2.5 bg-[#F7F6F2] border border-[#E5E2DC] rounded-lg">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
-                Active Candidate
+          <div className="px-3 pt-3 pb-1">
+            <div className="px-2.5 py-1.5 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[3px]">
+              <p className="text-[10px] uppercase font-semibold text-[#6C757D] tracking-wider">
+                Candidate
               </p>
-              <p className="text-xs font-bold text-[#172033] truncate mt-0.5">
+              <p className="text-xs font-semibold text-[#212529] truncate">
                 {client.candidate_name}
               </p>
-              <p className="text-[11px] text-[#1F3A5F] font-medium truncate">
+              <p className="text-[10px] text-[#714B67] font-medium truncate">
                 {client.election_type} • {client.location}
               </p>
             </div>
@@ -107,7 +108,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
         )}
 
         {/* Navigation List */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-2 py-2.5 space-y-0.5 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -120,25 +121,25 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
                 href={item.href}
                 onClick={onClose}
                 className={cn(
-                  "flex items-center gap-3 px-3.5 py-2.5 rounded-[8px] text-xs font-medium transition-all duration-150",
+                  "flex items-center gap-2.5 px-2.5 py-1.5 rounded-[3px] text-xs font-medium transition-colors duration-100",
                   isActive
-                    ? "bg-[#1F3A5F] text-white shadow-sm font-semibold"
-                    : "text-[#64748B] hover:text-[#172033] hover:bg-[#F7F6F2]"
+                    ? "bg-[#F1ECEF] text-[#714B67] font-semibold border-l-[3px] border-[#714B67]"
+                    : "text-[#495057] hover:text-[#212529] hover:bg-[#F8F9FA]"
                 )}
               >
-                <Icon className={cn("w-4 h-4 flex-shrink-0", isActive ? "text-white" : "text-[#64748B]")} />
+                <Icon className={cn("w-4 h-4 flex-shrink-0", isActive ? "text-[#714B67]" : "text-[#6C757D]")} />
                 <span>{item.name}</span>
               </Link>
             );
           })}
         </nav>
 
-        {/* Footer / App Details */}
-        <div className="p-4 border-t border-[#E5E2DC] text-[11px] text-[#64748B] flex items-center justify-between">
-          <span>Enterprise SaaS</span>
-          <span className="text-[#2F6B4F] font-semibold flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#2F6B4F] inline-block animate-pulse" />
-            RLS Active
+        {/* Compact Footer */}
+        <div className="px-3 py-2 border-t border-[#DEE2E6] text-[11px] text-[#6C757D] flex items-center justify-between bg-[#F8F9FA]">
+          <span>Chunav Setu v1.0</span>
+          <span className="text-[#2E7D32] font-medium flex items-center gap-1 text-[10px]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#2E7D32] inline-block" />
+            Connected
           </span>
         </div>
       </aside>

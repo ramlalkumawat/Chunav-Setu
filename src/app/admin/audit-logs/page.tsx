@@ -3,10 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { dbService } from "@/lib/store/data-service";
 import { AuditLog } from "@/lib/types";
-import { Card } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
+import { OdooControlPanel } from "@/components/ui/OdooControlPanel";
 import { formatDateTime } from "@/lib/utils";
-import { Search, ShieldAlert, History, Filter } from "lucide-react";
 
 export default function AdminAuditLogsPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -26,80 +24,69 @@ export default function AdminAuditLogsPage() {
   });
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#172033] tracking-tight">
-            Security & Activity Audit Logs
-          </h1>
-          <p className="text-xs text-[#64748B] mt-0.5">
-            Immutable system logs tracking client management, voter imports, and tenant actions
-          </p>
-        </div>
+    <div className="space-y-3">
+      {/* Odoo Control Panel */}
+      <OdooControlPanel
+        breadcrumb="System"
+        title="Security & Audit Logs"
+        subtitle="Chronological audit records tracking tenant lifecycle, authentication, and data operations"
+        searchPlaceholder="Search action, actor, tenant..."
+        searchValue={search}
+        onSearchChange={setSearch}
+      />
 
-        <div className="w-full sm:w-72">
-          <Input
-            placeholder="Search action, user, client..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            leftIcon={<Search className="w-4 h-4" />}
-          />
-        </div>
-      </div>
-
-      <Card padding="none">
+      {/* Dense Odoo Table */}
+      <div className="bg-white border border-[#DEE2E6] rounded-[4px] overflow-hidden shadow-none">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-[#FAFAF8] text-[#64748B] font-semibold border-b border-[#E5E2DC] uppercase tracking-wider">
+          <table className="odoo-table">
+            <thead>
               <tr>
-                <th className="px-5 py-3">Timestamp</th>
-                <th className="px-5 py-3">Action</th>
-                <th className="px-5 py-3">Actor / User</th>
-                <th className="px-5 py-3">Target Scope</th>
-                <th className="px-5 py-3">Tenant / Client</th>
-                <th className="px-5 py-3">Details</th>
+                <th>Timestamp</th>
+                <th>Operation</th>
+                <th>Operator</th>
+                <th>Target Entity</th>
+                <th>Tenant Context</th>
+                <th>Payload Metadata</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E5E2DC] text-[#172033]">
+            <tbody>
               {filteredLogs.map((log) => (
-                <tr key={log.id} className="hover:bg-[#F7F6F2]/50 transition-colors">
-                  <td className="px-5 py-3.5 font-mono text-[#64748B] whitespace-nowrap">
+                <tr key={log.id}>
+                  <td className="font-mono text-[11px] text-[#6C757D] whitespace-nowrap">
                     {formatDateTime(log.created_at)}
                   </td>
-                  <td className="px-5 py-3.5 font-bold text-[#1F3A5F]">
+                  <td className="font-semibold text-xs text-[#714B67]">
                     {log.action}
                   </td>
-                  <td className="px-5 py-3.5 font-medium">
+                  <td className="text-xs font-medium text-[#212529]">
                     {log.actor_name}
                   </td>
-                  <td className="px-5 py-3.5 text-[#64748B]">
-                    {log.target_type} {log.target_id && `(${log.target_id})`}
+                  <td className="text-xs text-[#495057]">
+                    {log.target_type} {log.target_id && <span className="font-mono text-[10px] text-[#6C757D]">({log.target_id})</span>}
                   </td>
-                  <td className="px-5 py-3.5">
+                  <td className="text-xs">
                     {log.client_name ? (
-                      <span className="px-2 py-0.5 rounded bg-white border border-[#E5E2DC] text-[11px] font-semibold text-[#172033]">
-                        {log.client_name}
-                      </span>
+                      <span className="font-medium text-[#212529]">{log.client_name}</span>
                     ) : (
-                      <span className="text-[#64748B]">Platform Global</span>
+                      <span className="text-[#ADB5BD]">System Cluster</span>
                     )}
                   </td>
-                  <td className="px-5 py-3.5 font-mono text-[11px] text-[#64748B]">
+                  <td className="font-mono text-[11px] text-[#6C757D] max-w-xs truncate">
                     {log.details ? JSON.stringify(log.details) : "—"}
                   </td>
                 </tr>
               ))}
               {filteredLogs.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-xs text-[#64748B]">
-                    No audit records found matching query.
+                  <td colSpan={6} className="text-center py-8 text-xs text-[#6C757D]">
+                    No audit records found matching your search.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

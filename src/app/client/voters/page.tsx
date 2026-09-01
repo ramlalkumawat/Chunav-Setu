@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Pagination } from "@/components/ui/Pagination";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { OdooControlPanel } from "@/components/ui/OdooControlPanel";
 import { formatDate } from "@/lib/utils";
 import {
   Plus,
@@ -27,10 +28,11 @@ import {
   Trash2,
   Eye,
   Phone,
-  MapPin,
-  CheckCircle2,
-  Calendar,
+  CheckSquare,
+  Square,
+  ChevronDown,
   X,
+  UserCheck,
 } from "lucide-react";
 
 export default function VotersPage() {
@@ -45,6 +47,11 @@ export default function VotersPage() {
   const [totalRecords, setTotalRecords] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
+  // Selection state for Bulk Actions
+  const [selectedVoterIds, setSelectedVoterIds] = useState<string[]>([]);
+  const [bulkStatusModal, setBulkStatusModal] = useState(false);
+  const [selectedBulkStatus, setSelectedBulkStatus] = useState<Voter["contact_status"]>("favorable");
+
   // Filter params
   const [search, setSearch] = useState("");
   const [boothFilter, setBoothFilter] = useState("all");
@@ -52,7 +59,7 @@ export default function VotersPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [genderFilter, setGenderFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const pageSize = 12;
 
   // Modals state
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -93,11 +100,39 @@ export default function VotersPage() {
     setVoters(result.data);
     setTotalRecords(result.total);
     setTotalPages(result.totalPages);
+    setSelectedVoterIds([]);
   }, [clientId, search, boothFilter, areaFilter, statusFilter, genderFilter, currentPage]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Selection toggle
+  const toggleSelectAll = () => {
+    if (selectedVoterIds.length === voters.length) {
+      setSelectedVoterIds([]);
+    } else {
+      setSelectedVoterIds(voters.map((v) => v.id));
+    }
+  };
+
+  const toggleSelectVoter = (id: string) => {
+    if (selectedVoterIds.includes(id)) {
+      setSelectedVoterIds(selectedVoterIds.filter((item) => item !== id));
+    } else {
+      setSelectedVoterIds([...selectedVoterIds, id]);
+    }
+  };
+
+  const handleBulkStatusChange = () => {
+    selectedVoterIds.forEach((id) => {
+      dbService.updateVoter(clientId, id, { contact_status: selectedBulkStatus });
+    });
+    success("Bulk Update Applied", `Updated status to "${selectedBulkStatus}" for ${selectedVoterIds.length} voters.`);
+    setBulkStatusModal(false);
+    setSelectedVoterIds([]);
+    loadData();
+  };
 
   const handleOpenAdd = () => {
     setEditingVoter(null);
@@ -160,7 +195,7 @@ export default function VotersPage() {
         { card: formData.voter_id_card, name: formData.name },
         clientId
       );
-      success("Voter Updated", `Changes saved for ${formData.name}`);
+      success("Record Updated", `Changes saved for ${formData.name}`);
     } else {
       const created = dbService.createVoter({
         client_id: clientId,
@@ -188,7 +223,7 @@ export default function VotersPage() {
         { card: created.voter_id_card, name: created.name },
         clientId
       );
-      success("Voter Enrolled", `Added ${created.name} to campaign records.`);
+      success("Voter Enrolled", `Added ${created.name} to directory.`);
     }
 
     setIsFormOpen(false);
@@ -206,7 +241,7 @@ export default function VotersPage() {
       { card: deletingVoter.voter_id_card, name: deletingVoter.name },
       clientId
     );
-    success("Voter Record Deleted", `Removed ${deletingVoter.name} from database.`);
+    success("Record Deleted", `Removed ${deletingVoter.name} from directory.`);
     setDeletingVoter(null);
     loadData();
   };
@@ -243,202 +278,252 @@ export default function VotersPage() {
       v.notes || "",
     ]);
 
-    exportToCsv(`Voters_List_${client?.candidate_name || "Campaign"}_${new Date().toISOString().split("T")[0]}`, headers, rows);
-    success("Export Completed", "CSV file generated and downloaded.");
+    exportToCsv(`Voters_${client?.candidate_name || "Campaign"}_${new Date().toISOString().split("T")[0]}`, headers, rows);
+    success("Export Complete", "CSV export downloaded successfully.");
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#172033] tracking-tight">
-            Voter Directory
-          </h1>
-          <p className="text-xs text-[#64748B] mt-0.5">
-            Search, filter, canvass, and manage registered electors across booths
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            leftIcon={<Download className="w-4 h-4" />}
-            onClick={handleExportCsv}
-          >
-            Export CSV
-          </Button>
-          <Link href="/client/voters/import">
-            <Button
-              variant="secondary"
-              size="sm"
-              leftIcon={<FileSpreadsheet className="w-4 h-4" />}
+    <div className="space-y-3">
+      {/* Odoo ERP Control Panel */}
+      <OdooControlPanel
+        breadcrumb="Campaign"
+        title="Voter Directory"
+        subtitle="Manage and canvass registered electors across polling stations"
+        primaryAction={{
+          label: "Add Voter",
+          onClick: handleOpenAdd,
+          icon: <Plus className="w-3.5 h-3.5" />,
+        }}
+        secondaryActions={[
+          {
+            label: "Import CSV",
+            href: "/client/voters/import",
+            icon: <FileSpreadsheet className="w-3.5 h-3.5 text-[#6C757D]" />,
+          },
+          {
+            label: "Export CSV",
+            onClick: handleExportCsv,
+            icon: <Download className="w-3.5 h-3.5 text-[#6C757D]" />,
+          },
+        ]}
+        searchPlaceholder="Search name, EPIC, mobile..."
+        searchValue={search}
+        onSearchChange={(val) => {
+          setSearch(val);
+          setCurrentPage(1);
+        }}
+        pagination={{
+          currentPage,
+          totalPages,
+          totalRecords,
+          pageSize,
+          onPageChange: (p) => setCurrentPage(p),
+        }}
+        filterComponent={
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+            <select
+              value={boothFilter}
+              onChange={(e) => {
+                setBoothFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-8 bg-white border border-[#DEE2E6] rounded-[3px] text-xs px-2 text-[#212529] focus:outline-none focus:border-[#714B67]"
             >
-              Batch CSV Import
+              <option value="all">All Polling Booths</option>
+              {booths.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.booth_number} - {b.booth_name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={areaFilter}
+              onChange={(e) => {
+                setAreaFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-8 bg-white border border-[#DEE2E6] rounded-[3px] text-xs px-2 text-[#212529] focus:outline-none focus:border-[#714B67]"
+            >
+              <option value="all">All Wards / Areas</option>
+              {areas.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-8 bg-white border border-[#DEE2E6] rounded-[3px] text-xs px-2 text-[#212529] focus:outline-none focus:border-[#714B67]"
+            >
+              <option value="all">All Contact Statuses</option>
+              <option value="uncontacted">Uncontacted</option>
+              <option value="favorable">Favorable / Supporter</option>
+              <option value="undecided">Undecided</option>
+              <option value="unfavorable">Unfavorable</option>
+              <option value="contacted">Contacted</option>
+              <option value="not_available">Door Locked / Not Available</option>
+            </select>
+
+            <select
+              value={genderFilter}
+              onChange={(e) => {
+                setGenderFilter(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="h-8 bg-white border border-[#DEE2E6] rounded-[3px] text-xs px-2 text-[#212529] focus:outline-none focus:border-[#714B67]"
+            >
+              <option value="all">All Genders</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        }
+      />
+
+      {/* Bulk Action Bar (When rows are selected) */}
+      {selectedVoterIds.length > 0 && (
+        <div className="bg-[#F1ECEF] border border-[#D9CAD5] rounded-[4px] px-3.5 py-2 flex items-center justify-between text-xs animate-in fade-in duration-100">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-[#714B67]">
+              {selectedVoterIds.length} records selected
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setBulkStatusModal(true)}
+              leftIcon={<UserCheck className="w-3.5 h-3.5 text-[#714B67]" />}
+            >
+              Set Status
             </Button>
-          </Link>
-          <Button size="sm" leftIcon={<Plus className="w-4 h-4" />} onClick={handleOpenAdd}>
-            Add Voter
-          </Button>
+            <button
+              onClick={() => setSelectedVoterIds([])}
+              className="text-[#6C757D] hover:text-[#212529] p-1"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Filter and Search Bar */}
-      <Card padding="sm" className="bg-[#FAFAF8]">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
-          <Input
-            placeholder="Search name, EPIC, phone..."
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setCurrentPage(1);
-            }}
-            leftIcon={<Search className="w-4 h-4" />}
-          />
-
-          <Select
-            value={boothFilter}
-            onChange={(e) => {
-              setBoothFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            options={[
-              { value: "all", label: "All Polling Booths" },
-              ...booths.map((b) => ({ value: b.id, label: `${b.booth_number} - ${b.booth_name}` })),
-            ]}
-          />
-
-          <Select
-            value={areaFilter}
-            onChange={(e) => {
-              setAreaFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            options={[
-              { value: "all", label: "All Areas / Wards" },
-              ...areas.map((a) => ({ value: a.id, label: `${a.name} (${a.ward_number || ""})` })),
-            ]}
-          />
-
-          <Select
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            options={[
-              { value: "all", label: "All Contact Statuses" },
-              { value: "uncontacted", label: "Uncontacted" },
-              { value: "favorable", label: "Favorable / Supporter" },
-              { value: "undecided", label: "Undecided" },
-              { value: "unfavorable", label: "Unfavorable" },
-              { value: "contacted", label: "Contacted" },
-              { value: "not_available", label: "Not Available / Door Locked" },
-            ]}
-          />
-
-          <Select
-            value={genderFilter}
-            onChange={(e) => {
-              setGenderFilter(e.target.value);
-              setCurrentPage(1);
-            }}
-            options={[
-              { value: "all", label: "All Genders" },
-              { value: "Male", label: "Male" },
-              { value: "Female", label: "Female" },
-              { value: "Other", label: "Other" },
-            ]}
-          />
-        </div>
-      </Card>
-
-      {/* Voters Table */}
-      <Card padding="none">
+      {/* Dense Professional Odoo-style Data Table */}
+      <div className="bg-white border border-[#DEE2E6] rounded-[4px] overflow-hidden shadow-none">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-[#FAFAF8] text-[#64748B] font-semibold border-b border-[#E5E2DC] uppercase tracking-wider">
+          <table className="odoo-table">
+            <thead>
               <tr>
-                <th className="px-5 py-3">Voter ID / EPIC</th>
-                <th className="px-5 py-3">Full Name</th>
-                <th className="px-5 py-3">Contact Details</th>
-                <th className="px-5 py-3">Age / Sex</th>
-                <th className="px-5 py-3">Booth & Area</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Actions</th>
+                <th className="w-9 text-center">
+                  <button
+                    onClick={toggleSelectAll}
+                    className="text-[#6C757D] hover:text-[#212529] inline-flex items-center"
+                  >
+                    {selectedVoterIds.length === voters.length && voters.length > 0 ? (
+                      <CheckSquare className="w-4 h-4 text-[#714B67]" />
+                    ) : (
+                      <Square className="w-4 h-4 text-[#CED4DA]" />
+                    )}
+                  </button>
+                </th>
+                <th>EPIC Number</th>
+                <th>Voter Name</th>
+                <th>Contact</th>
+                <th>Demographics</th>
+                <th>Booth & Ward</th>
+                <th>Status</th>
+                <th className="text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E5E2DC] text-[#172033]">
-              {voters.map((voter) => (
-                <tr key={voter.id} className="hover:bg-[#F7F6F2]/50 transition-colors">
-                  <td className="px-5 py-3.5 font-mono font-bold text-[#1F3A5F]">
-                    {voter.voter_id_card}
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <p className="font-bold text-[#172033]">{voter.name}</p>
-                    {voter.address && (
-                      <p className="text-[11px] text-[#64748B] truncate max-w-xs">{voter.address}</p>
-                    )}
-                  </td>
-                  <td className="px-5 py-3.5 text-[#64748B]">
-                    {voter.mobile ? (
-                      <span className="flex items-center gap-1 font-mono text-[#172033]">
-                        <Phone className="w-3 h-3 text-[#64748B]" />
-                        {voter.mobile}
-                      </span>
-                    ) : (
-                      "No mobile"
-                    )}
-                  </td>
-                  <td className="px-5 py-3.5">
-                    {voter.age ? `${voter.age} yrs` : "—"} • {voter.gender || "—"}
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <p className="font-semibold text-[#172033]">
-                      {voter.booth_number || "Unassigned"}
-                    </p>
-                    <p className="text-[11px] text-[#64748B]">{voter.area_name}</p>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <Badge status={voter.contact_status} size="sm" />
-                    {voter.follow_up_status === "pending" && (
-                      <span className="ml-1 text-[10px] text-[#B7791F] font-semibold">
-                        • Follow-up
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-5 py-3.5 text-right">
-                    <div className="flex items-center justify-end gap-1">
+            <tbody>
+              {voters.map((voter) => {
+                const isSelected = selectedVoterIds.includes(voter.id);
+                return (
+                  <tr key={voter.id} className={isSelected ? "selected" : ""}>
+                    <td className="text-center">
                       <button
-                        onClick={() => setViewingVoter(voter)}
-                        className="p-1.5 rounded hover:bg-[#F7F6F2] text-[#64748B] hover:text-[#172033]"
-                        title="View Full Profile"
+                        onClick={() => toggleSelectVoter(voter.id)}
+                        className="text-[#6C757D] hover:text-[#212529] inline-flex items-center"
                       >
-                        <Eye className="w-4 h-4" />
+                        {isSelected ? (
+                          <CheckSquare className="w-4 h-4 text-[#714B67]" />
+                        ) : (
+                          <Square className="w-4 h-4 text-[#CED4DA]" />
+                        )}
                       </button>
-                      <button
-                        onClick={() => handleOpenEdit(voter)}
-                        className="p-1.5 rounded hover:bg-[#F7F6F2] text-[#64748B] hover:text-[#172033]"
-                        title="Edit Voter"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => setDeletingVoter(voter)}
-                        className="p-1.5 rounded hover:bg-[#FDF2F2] text-[#B94A48]"
-                        title="Delete Voter"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="font-mono text-xs font-semibold text-[#714B67]">
+                      {voter.voter_id_card}
+                    </td>
+                    <td>
+                      <p className="font-semibold text-[#212529] leading-tight">{voter.name}</p>
+                      {voter.address && (
+                        <p className="text-[11px] text-[#6C757D] truncate max-w-xs">{voter.address}</p>
+                      )}
+                    </td>
+                    <td className="text-xs text-[#495057]">
+                      {voter.mobile ? (
+                        <span className="font-mono">{voter.mobile}</span>
+                      ) : (
+                        <span className="text-[#ADB5BD]">—</span>
+                      )}
+                    </td>
+                    <td className="text-xs text-[#495057]">
+                      {voter.age ? `${voter.age} yrs` : "—"} • {voter.gender || "—"}
+                    </td>
+                    <td className="text-xs">
+                      <p className="font-medium text-[#212529]">
+                        {voter.booth_number ? `Booth ${voter.booth_number}` : "Unassigned"}
+                      </p>
+                      <p className="text-[11px] text-[#6C757D]">{voter.area_name || "—"}</p>
+                    </td>
+                    <td>
+                      <Badge status={voter.contact_status} size="sm" />
+                      {voter.follow_up_status === "pending" && (
+                        <span className="ml-1 text-[10px] text-[#E65100] font-semibold">
+                          • Follow-up
+                        </span>
+                      )}
+                    </td>
+                    <td className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => setViewingVoter(voter)}
+                          className="p-1 rounded hover:bg-[#F8F9FA] text-[#6C757D] hover:text-[#212529]"
+                          title="View Details"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleOpenEdit(voter)}
+                          className="p-1 rounded hover:bg-[#F8F9FA] text-[#6C757D] hover:text-[#212529]"
+                          title="Edit Record"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setDeletingVoter(voter)}
+                          className="p-1 rounded hover:bg-[#FFEBEE] text-[#C62828]"
+                          title="Delete Record"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
               {voters.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-5 py-8 text-center text-xs text-[#64748B]">
-                    No voter records found matching your filters.
+                  <td colSpan={8} className="text-center py-8 text-xs text-[#6C757D]">
+                    No elector records found matching your filters.
                   </td>
                 </tr>
               )}
@@ -446,7 +531,7 @@ export default function VotersPage() {
           </table>
         </div>
 
-        {/* Server-Side Pagination */}
+        {/* Pager bar */}
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
@@ -454,188 +539,235 @@ export default function VotersPage() {
           pageSize={pageSize}
           onPageChange={(p) => setCurrentPage(p)}
         />
-      </Card>
+      </div>
 
-      {/* Add / Edit Voter Modal */}
+      {/* Add / Edit Form Modal (Odoo ERP Form Sheet Style) */}
       <Modal
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        title={editingVoter ? "Edit Elector Details" : "Enroll New Voter"}
-        subtitle="Manage official voter directory credentials and polling booth assignment"
+        title={editingVoter ? `Edit Elector: ${editingVoter.name}` : "New Elector Record"}
+        subtitle="Campaign Voter Management Sheet"
         maxWidth="lg"
         footer={
           <>
-            <Button variant="outline" size="sm" onClick={() => setIsFormOpen(false)}>
-              Cancel
+            <Button variant="secondary" size="sm" onClick={() => setIsFormOpen(false)}>
+              Discard
             </Button>
-            <Button size="sm" onClick={handleSaveVoter}>
-              {editingVoter ? "Save Changes" : "Save Voter"}
+            <Button size="sm" variant="primary" onClick={handleSaveVoter}>
+              {editingVoter ? "Save Changes" : "Save Record"}
             </Button>
           </>
         }
       >
-        <form onSubmit={handleSaveVoter} className="space-y-3.5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <form onSubmit={handleSaveVoter} className="space-y-3">
+          {/* Section 1: Identification & Demographics */}
+          <div className="p-3 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[3px] space-y-2.5">
+            <p className="text-[11px] font-semibold text-[#6C757D] uppercase tracking-wider">
+              Identity & Contact
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <Input
+                label="Voter ID / EPIC Number"
+                placeholder="e.g. DL/04/023/100429"
+                value={formData.voter_id_card}
+                onChange={(e) => setFormData({ ...formData, voter_id_card: e.target.value.toUpperCase() })}
+                required
+              />
+              <Input
+                label="Full Name"
+                placeholder="Voter Name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <Input
+                label="Mobile"
+                placeholder="+91 98000 00000"
+                value={formData.mobile}
+                onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
+              />
+              <Input
+                label="Age"
+                type="number"
+                placeholder="Age"
+                value={formData.age}
+                onChange={(e) => setFormData({ ...formData, age: e.target.value })}
+              />
+              <Select
+                label="Gender"
+                value={formData.gender}
+                onChange={(e) => setFormData({ ...formData, gender: e.target.value as Voter["gender"] })}
+                options={[
+                  { value: "Male", label: "Male" },
+                  { value: "Female", label: "Female" },
+                  { value: "Other", label: "Other" },
+                ]}
+              />
+            </div>
+          </div>
+
+          {/* Section 2: Polling Booth Assignment */}
+          <div className="p-3 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[3px] space-y-2.5">
+            <p className="text-[11px] font-semibold text-[#6C757D] uppercase tracking-wider">
+              Polling Station & Locality
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <Select
+                label="Ward / Area"
+                value={formData.area_id}
+                onChange={(e) => setFormData({ ...formData, area_id: e.target.value })}
+                options={areas.map((a) => ({ value: a.id, label: a.name }))}
+              />
+              <Select
+                label="Polling Booth"
+                value={formData.booth_id}
+                onChange={(e) => setFormData({ ...formData, booth_id: e.target.value })}
+                options={booths.map((b) => ({ value: b.id, label: `${b.booth_number} - ${b.booth_name}` }))}
+              />
+            </div>
             <Input
-              label="Voter ID / EPIC Number"
-              placeholder="e.g. UP/48/281/001499"
-              value={formData.voter_id_card}
-              onChange={(e) => setFormData({ ...formData, voter_id_card: e.target.value.toUpperCase() })}
-              required
-            />
-            <Input
-              label="Full Name"
-              placeholder="Voter Name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
+              label="House No / Street / Colony Address"
+              placeholder="Address details..."
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Input
-              label="Mobile Number"
-              placeholder="+91 98000 00000"
-              value={formData.mobile}
-              onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
-            />
-            <Input
-              label="Age"
-              type="number"
-              placeholder="Age"
-              value={formData.age}
-              onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-            />
+          {/* Section 3: Status & Field Notes */}
+          <div className="p-3 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[3px] space-y-2.5">
+            <p className="text-[11px] font-semibold text-[#6C757D] uppercase tracking-wider">
+              Canvassing & Field Outreach
+            </p>
             <Select
-              label="Gender"
-              value={formData.gender}
-              onChange={(e) => setFormData({ ...formData, gender: e.target.value as Voter["gender"] })}
+              label="Contact Status"
+              value={formData.contact_status}
+              onChange={(e) => setFormData({ ...formData, contact_status: e.target.value as Voter["contact_status"] })}
               options={[
-                { value: "Male", label: "Male" },
-                { value: "Female", label: "Female" },
-                { value: "Other", label: "Other" },
+                { value: "uncontacted", label: "Uncontacted" },
+                { value: "favorable", label: "Favorable / Supporter" },
+                { value: "undecided", label: "Undecided" },
+                { value: "unfavorable", label: "Unfavorable" },
+                { value: "contacted", label: "Contacted" },
+                { value: "not_available", label: "Not Available / Door Locked" },
               ]}
             />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Select
-              label="Area / Ward"
-              value={formData.area_id}
-              onChange={(e) => setFormData({ ...formData, area_id: e.target.value })}
-              options={areas.map((a) => ({ value: a.id, label: a.name }))}
-            />
-            <Select
-              label="Polling Booth"
-              value={formData.booth_id}
-              onChange={(e) => setFormData({ ...formData, booth_id: e.target.value })}
-              options={booths.map((b) => ({ value: b.id, label: `${b.booth_number} - ${b.booth_name}` }))}
+            <Textarea
+              label="Canvassing Notes & Feedback"
+              placeholder="Local demands, grievances, party sentiment..."
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
             />
           </div>
-
-          <Input
-            label="Address / House No / Locality"
-            placeholder="H.No 45, Street name, Colony"
-            value={formData.address}
-            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-          />
-
-          <Select
-            label="Contact Status"
-            value={formData.contact_status}
-            onChange={(e) => setFormData({ ...formData, contact_status: e.target.value as Voter["contact_status"] })}
-            options={[
-              { value: "uncontacted", label: "Uncontacted" },
-              { value: "favorable", label: "Favorable / Supporter" },
-              { value: "undecided", label: "Undecided" },
-              { value: "unfavorable", label: "Unfavorable" },
-              { value: "contacted", label: "Contacted" },
-              { value: "not_available", label: "Not Available" },
-            ]}
-          />
-
-          <Textarea
-            label="Canvassing Notes & Grievances"
-            placeholder="Key voter concerns, local demands, influence level..."
-            value={formData.notes}
-            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-          />
         </form>
       </Modal>
 
-      {/* View Voter Profile Drawer / Modal */}
+      {/* View Details Modal */}
       {viewingVoter && (
         <Modal
           isOpen={true}
           onClose={() => setViewingVoter(null)}
-          title="Elector Profile Details"
-          subtitle={`Voter Record: ${viewingVoter.voter_id_card}`}
+          title={viewingVoter.name}
+          subtitle={`EPIC: ${viewingVoter.voter_id_card}`}
           maxWidth="md"
           footer={
-            <Button size="sm" onClick={() => setViewingVoter(null)}>
+            <Button size="sm" variant="secondary" onClick={() => setViewingVoter(null)}>
               Close
             </Button>
           }
         >
-          <div className="space-y-4 text-xs">
-            <div className="p-3 bg-[#FAFAF8] border border-[#E5E2DC] rounded-lg flex items-center justify-between">
+          <div className="space-y-3 text-xs">
+            <div className="p-2.5 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[3px] flex items-center justify-between">
               <div>
-                <p className="font-bold text-base text-[#172033]">{viewingVoter.name}</p>
-                <p className="text-[#64748B] font-mono mt-0.5">{viewingVoter.voter_id_card}</p>
+                <p className="font-bold text-sm text-[#212529]">{viewingVoter.name}</p>
+                <p className="font-mono text-[#6C757D] text-[11px]">{viewingVoter.voter_id_card}</p>
               </div>
               <Badge status={viewingVoter.contact_status} />
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-2.5 bg-white border border-[#E5E2DC] rounded-lg">
-                <span className="text-[#64748B]">Mobile:</span>
-                <p className="font-semibold text-[#172033] font-mono mt-0.5">
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="p-2 bg-white border border-[#DEE2E6] rounded-[3px]">
+                <span className="text-[#6C757D] text-[11px]">Mobile:</span>
+                <p className="font-semibold text-[#212529] font-mono mt-0.5">
                   {viewingVoter.mobile || "Not available"}
                 </p>
               </div>
-              <div className="p-2.5 bg-white border border-[#E5E2DC] rounded-lg">
-                <span className="text-[#64748B]">Age & Gender:</span>
-                <p className="font-semibold text-[#172033] mt-0.5">
+              <div className="p-2 bg-white border border-[#DEE2E6] rounded-[3px]">
+                <span className="text-[#6C757D] text-[11px]">Demographics:</span>
+                <p className="font-semibold text-[#212529] mt-0.5">
                   {viewingVoter.age || "—"} yrs • {viewingVoter.gender || "—"}
                 </p>
               </div>
-              <div className="p-2.5 bg-white border border-[#E5E2DC] rounded-lg">
-                <span className="text-[#64748B]">Booth:</span>
-                <p className="font-semibold text-[#172033] mt-0.5">
+              <div className="p-2 bg-white border border-[#DEE2E6] rounded-[3px]">
+                <span className="text-[#6C757D] text-[11px]">Polling Booth:</span>
+                <p className="font-semibold text-[#212529] mt-0.5">
                   {viewingVoter.booth_number} - {viewingVoter.booth_name}
                 </p>
               </div>
-              <div className="p-2.5 bg-white border border-[#E5E2DC] rounded-lg">
-                <span className="text-[#64748B]">Ward / Area:</span>
-                <p className="font-semibold text-[#172033] mt-0.5">
+              <div className="p-2 bg-white border border-[#DEE2E6] rounded-[3px]">
+                <span className="text-[#6C757D] text-[11px]">Area / Ward:</span>
+                <p className="font-semibold text-[#212529] mt-0.5">
                   {viewingVoter.area_name || "—"}
                 </p>
               </div>
             </div>
 
             {viewingVoter.address && (
-              <div className="p-2.5 bg-white border border-[#E5E2DC] rounded-lg">
-                <span className="text-[#64748B]">Locality / Address:</span>
-                <p className="text-[#172033] mt-0.5">{viewingVoter.address}</p>
+              <div className="p-2 bg-white border border-[#DEE2E6] rounded-[3px]">
+                <span className="text-[#6C757D] text-[11px]">Address:</span>
+                <p className="text-[#212529] mt-0.5">{viewingVoter.address}</p>
               </div>
             )}
 
             {viewingVoter.notes && (
-              <div className="p-2.5 bg-[#FEF7EC] border border-[#FBE3B8] rounded-lg">
-                <span className="font-semibold text-[#B7791F]">Field Survey Notes:</span>
-                <p className="text-[#172033] mt-1 italic">"{viewingVoter.notes}"</p>
-              </div>
-            )}
-
-            {viewingVoter.last_contacted_by && (
-              <div className="pt-2 border-t border-[#E5E2DC] flex items-center justify-between text-[11px] text-[#64748B]">
-                <span>Last canvassed by: <strong>{viewingVoter.last_contacted_by}</strong></span>
-                <span>{formatDate(viewingVoter.last_contacted_at)}</span>
+              <div className="p-2 bg-[#FFF3E0] border border-[#FFE0B2] rounded-[3px]">
+                <span className="font-semibold text-[#E65100] text-[11px]">Canvassing Notes:</span>
+                <p className="text-[#212529] mt-0.5 italic text-xs">"{viewingVoter.notes}"</p>
               </div>
             )}
           </div>
         </Modal>
       )}
+
+      {/* Bulk Status Change Modal */}
+      <Modal
+        isOpen={bulkStatusModal}
+        onClose={() => setBulkStatusModal(false)}
+        title="Update Contact Status"
+        subtitle={`Apply to ${selectedVoterIds.length} selected voter records`}
+        maxWidth="sm"
+        footer={
+          <>
+            <Button variant="secondary" size="sm" onClick={() => setBulkStatusModal(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" variant="primary" onClick={handleBulkStatusChange}>
+              Apply Status
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3 text-xs">
+          <Select
+            label="Target Contact Status"
+            value={selectedBulkStatus}
+            onChange={(e) => setSelectedBulkStatus(e.target.value as Voter["contact_status"])}
+            options={[
+              { value: "favorable", label: "Favorable / Supporter" },
+              { value: "undecided", label: "Undecided" },
+              { value: "unfavorable", label: "Unfavorable" },
+              { value: "contacted", label: "Contacted" },
+              { value: "uncontacted", label: "Uncontacted" },
+              { value: "not_available", label: "Not Available / Door Locked" },
+            ]}
+          />
+          <p className="text-[11px] text-[#6C757D]">
+            This will update the contact status for all {selectedVoterIds.length} currently selected records in the campaign database.
+          </p>
+        </div>
+      </Modal>
 
       {/* Delete Voter Confirm Dialog */}
       {deletingVoter && (
@@ -644,7 +776,7 @@ export default function VotersPage() {
           onClose={() => setDeletingVoter(null)}
           onConfirm={handleDeleteVoter}
           title="Delete Voter Record"
-          message={`Are you sure you want to remove ${deletingVoter.name} (${deletingVoter.voter_id_card}) from the campaign database? This action cannot be undone.`}
+          message={`Are you sure you want to remove ${deletingVoter.name} (${deletingVoter.voter_id_card}) from the campaign database?`}
           confirmText="Delete Record"
           variant="danger"
         />

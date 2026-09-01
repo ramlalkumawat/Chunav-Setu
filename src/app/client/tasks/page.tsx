@@ -5,13 +5,13 @@ import { dbService } from "@/lib/store/data-service";
 import { useAuth } from "@/lib/context/auth-context";
 import { useToast } from "@/lib/context/toast-context";
 import { Task, Volunteer, Booth, Area } from "@/lib/types";
-import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
+import { OdooControlPanel } from "@/components/ui/OdooControlPanel";
 import { formatDate } from "@/lib/utils";
 import {
   CheckSquare,
@@ -19,11 +19,9 @@ import {
   Search,
   Calendar,
   UserCheck,
-  Building2,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
+  Building,
   Edit2,
+  CheckCircle2,
 } from "lucide-react";
 
 export default function TasksPage() {
@@ -171,159 +169,150 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#172033] tracking-tight">
-            Field Tasks & Assignments
-          </h1>
-          <p className="text-xs text-[#64748B] mt-0.5">
-            Create, delegate, and monitor door-to-door assignments for volunteers
-          </p>
-        </div>
+    <div className="space-y-3">
+      {/* Odoo Control Panel */}
+      <OdooControlPanel
+        breadcrumb="Campaign"
+        title="Field Tasks"
+        subtitle="Manage volunteer assignments, door-to-door priorities, and deadlines"
+        primaryAction={{
+          label: "Create Task",
+          onClick: handleOpenAdd,
+          icon: <Plus className="w-3.5 h-3.5" />,
+        }}
+        searchPlaceholder="Search task, volunteer, booth..."
+        searchValue={search}
+        onSearchChange={setSearch}
+        filterComponent={
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setStatusTab("all")}
+              className={`px-2.5 py-1 rounded-[3px] text-xs font-medium transition-colors ${
+                statusTab === "all" ? "bg-[#714B67] text-white" : "bg-white text-[#495057] border border-[#DEE2E6] hover:bg-[#F8F9FA]"
+              }`}
+            >
+              All ({tasks.length})
+            </button>
+            <button
+              onClick={() => setStatusTab("pending")}
+              className={`px-2.5 py-1 rounded-[3px] text-xs font-medium transition-colors ${
+                statusTab === "pending" ? "bg-[#714B67] text-white" : "bg-white text-[#495057] border border-[#DEE2E6] hover:bg-[#F8F9FA]"
+              }`}
+            >
+              Pending ({tasks.filter((t) => t.status === "pending").length})
+            </button>
+            <button
+              onClick={() => setStatusTab("in_progress")}
+              className={`px-2.5 py-1 rounded-[3px] text-xs font-medium transition-colors ${
+                statusTab === "in_progress" ? "bg-[#714B67] text-white" : "bg-white text-[#495057] border border-[#DEE2E6] hover:bg-[#F8F9FA]"
+              }`}
+            >
+              In Progress ({tasks.filter((t) => t.status === "in_progress").length})
+            </button>
+            <button
+              onClick={() => setStatusTab("completed")}
+              className={`px-2.5 py-1 rounded-[3px] text-xs font-medium transition-colors ${
+                statusTab === "completed" ? "bg-[#2E7D32] text-white" : "bg-white text-[#495057] border border-[#DEE2E6] hover:bg-[#F8F9FA]"
+              }`}
+            >
+              Completed ({tasks.filter((t) => t.status === "completed").length})
+            </button>
+          </div>
+        }
+      />
 
-        <Button size="sm" leftIcon={<Plus className="w-4 h-4" />} onClick={handleOpenAdd}>
-          Create Task
-        </Button>
-      </div>
-
-      {/* Filter Tabs & Search */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 p-1 bg-white border border-[#E5E2DC] rounded-lg text-xs font-semibold">
-          <button
-            onClick={() => setStatusTab("all")}
-            className={`px-3 py-1.5 rounded-md transition-colors ${
-              statusTab === "all" ? "bg-[#1F3A5F] text-white" : "text-[#64748B] hover:text-[#172033]"
-            }`}
-          >
-            All Tasks ({tasks.length})
-          </button>
-          <button
-            onClick={() => setStatusTab("pending")}
-            className={`px-3 py-1.5 rounded-md transition-colors ${
-              statusTab === "pending" ? "bg-[#1F3A5F] text-white" : "text-[#64748B] hover:text-[#172033]"
-            }`}
-          >
-            Pending ({tasks.filter((t) => t.status === "pending").length})
-          </button>
-          <button
-            onClick={() => setStatusTab("in_progress")}
-            className={`px-3 py-1.5 rounded-md transition-colors ${
-              statusTab === "in_progress" ? "bg-[#1F3A5F] text-white" : "text-[#64748B] hover:text-[#172033]"
-            }`}
-          >
-            In Progress ({tasks.filter((t) => t.status === "in_progress").length})
-          </button>
-          <button
-            onClick={() => setStatusTab("completed")}
-            className={`px-3 py-1.5 rounded-md transition-colors ${
-              statusTab === "completed" ? "bg-[#2F6B4F] text-white" : "text-[#64748B] hover:text-[#172033]"
-            }`}
-          >
-            Completed ({tasks.filter((t) => t.status === "completed").length})
-          </button>
-        </div>
-
-        <div className="w-full sm:w-72">
-          <Input
-            placeholder="Search task title, volunteer, booth..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            leftIcon={<Search className="w-4 h-4" />}
-          />
-        </div>
-      </div>
-
-      {/* Tasks Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredTasks.map((task) => (
-          <Card key={task.id} padding="md" className="flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-2">
-                <Badge status={task.priority} size="sm" />
-                <Badge status={task.status} size="sm" />
-              </div>
-
-              <h3 className="text-sm font-bold text-[#172033] leading-snug">
-                {task.title}
-              </h3>
-              {task.description && (
-                <p className="text-xs text-[#64748B] mt-1.5 line-clamp-2 leading-relaxed">
-                  {task.description}
-                </p>
+      {/* Dense Odoo Table for Tasks */}
+      <div className="bg-white border border-[#DEE2E6] rounded-[4px] overflow-hidden shadow-none">
+        <div className="overflow-x-auto">
+          <table className="odoo-table">
+            <thead>
+              <tr>
+                <th>Task Title & Instructions</th>
+                <th>Assigned Volunteer</th>
+                <th>Target Polling Station</th>
+                <th>Priority</th>
+                <th>Due Date</th>
+                <th>Status</th>
+                <th className="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredTasks.map((task) => (
+                <tr key={task.id}>
+                  <td>
+                    <p className="font-semibold text-[#212529]">{task.title}</p>
+                    {task.description && (
+                      <p className="text-[11px] text-[#6C757D] truncate max-w-md">{task.description}</p>
+                    )}
+                  </td>
+                  <td className="text-xs text-[#495057]">
+                    <span className="font-medium text-[#212529]">{task.volunteer_name || "Unassigned"}</span>
+                  </td>
+                  <td className="text-xs text-[#714B67] font-medium">
+                    {task.booth_name || "General / Constituency"}
+                  </td>
+                  <td>
+                    <Badge status={task.priority} size="sm" />
+                  </td>
+                  <td className="text-xs text-[#495057] font-mono">
+                    {formatDate(task.due_date)}
+                  </td>
+                  <td>
+                    <Badge status={task.status} size="sm" />
+                  </td>
+                  <td className="text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      {task.status !== "completed" ? (
+                        <button
+                          onClick={() => handleUpdateStatus(task, "completed")}
+                          className="px-2 py-0.5 rounded-[3px] bg-[#E8F5E9] text-[#2E7D32] border border-[#C8E6C9] font-medium text-[11px] hover:bg-[#C8E6C9]"
+                        >
+                          Mark Done
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleUpdateStatus(task, "in_progress")}
+                          className="px-2 py-0.5 rounded-[3px] bg-[#F8F9FA] text-[#6C757D] border border-[#DEE2E6] font-medium text-[11px]"
+                        >
+                          Reopen
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleOpenEdit(task)}
+                        className="p-1 rounded hover:bg-[#F8F9FA] text-[#6C757D] hover:text-[#212529]"
+                        title="Edit Task"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {filteredTasks.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="text-center py-8 text-xs text-[#6C757D]">
+                    No tasks found matching your filter criteria.
+                  </td>
+                </tr>
               )}
-
-              <div className="mt-4 pt-3 border-t border-[#E5E2DC] space-y-1.5 text-xs text-[#64748B]">
-                <div className="flex items-center gap-1.5 font-medium text-[#172033]">
-                  <UserCheck className="w-3.5 h-3.5 text-[#1F3A5F]" />
-                  <span>Assigned: {task.volunteer_name || "Unassigned"}</span>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <Building2 className="w-3.5 h-3.5 text-[#64748B]" />
-                  <span>{task.booth_name || "General Task"}</span>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-[#64748B]" />
-                  <span>Due: <strong className="text-[#172033]">{formatDate(task.due_date)}</strong></span>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-[#E5E2DC] flex items-center justify-between">
-              <div className="flex items-center gap-1">
-                {task.status !== "completed" ? (
-                  <button
-                    onClick={() => handleUpdateStatus(task, "completed")}
-                    className="px-2.5 py-1 rounded bg-[#EAF3EE] text-[#2F6B4F] border border-[#C3DEC9] font-semibold text-[11px] hover:bg-[#D5EADB]"
-                  >
-                    Mark Done
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleUpdateStatus(task, "in_progress")}
-                    className="px-2.5 py-1 rounded bg-[#F1F3F5] text-[#64748B] border border-[#E2E8F0] font-semibold text-[11px]"
-                  >
-                    Reopen
-                  </button>
-                )}
-              </div>
-
-              <button
-                onClick={() => handleOpenEdit(task)}
-                className="p-1 rounded hover:bg-[#F7F6F2] text-[#64748B] hover:text-[#172033]"
-                title="Edit Task"
-              >
-                <Edit2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </Card>
-        ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-
-      {filteredTasks.length === 0 && (
-        <Card padding="lg" className="text-center py-10">
-          <CheckSquare className="w-8 h-8 text-[#64748B] mx-auto mb-2 opacity-50" />
-          <p className="text-xs font-semibold text-[#172033]">No tasks found</p>
-          <p className="text-xs text-[#64748B] mt-0.5">Click "Create Task" to assign field work.</p>
-        </Card>
-      )}
 
       {/* Create / Edit Task Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingTask ? "Edit Field Task" : "Assign New Field Task"}
-        subtitle="Specify task targets, assigned volunteer, booth, and due date"
+        title={editingTask ? `Edit Task: ${editingTask.title}` : "New Field Task"}
+        subtitle="Campaign Task Delegation Sheet"
         maxWidth="md"
         footer={
           <>
-            <Button variant="outline" size="sm" onClick={() => setIsModalOpen(false)}>
-              Cancel
+            <Button variant="secondary" size="sm" onClick={() => setIsModalOpen(false)}>
+              Discard
             </Button>
-            <Button size="sm" onClick={handleSaveTask}>
+            <Button size="sm" variant="primary" onClick={handleSaveTask}>
               {editingTask ? "Save Changes" : "Assign Task"}
             </Button>
           </>
@@ -331,21 +320,21 @@ export default function TasksPage() {
       >
         <form onSubmit={handleSaveTask} className="space-y-3">
           <Input
-            label="Task Title"
-            placeholder="e.g. Distribute Voter Slips in Block C"
+            label="Task Summary / Title"
+            placeholder="e.g. Canvass Block C Voter List"
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             required
           />
 
           <Textarea
-            label="Description & Instructions"
-            placeholder="Detailed instructions for volunteer on the ground..."
+            label="Field Instructions & Guidelines"
+            placeholder="Specific instructions for the ground worker..."
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <Select
               label="Assign Volunteer"
               value={formData.volunteer_id}
@@ -354,16 +343,16 @@ export default function TasksPage() {
             />
 
             <Select
-              label="Target Booth"
+              label="Target Polling Booth"
               value={formData.booth_id}
               onChange={(e) => setFormData({ ...formData, booth_id: e.target.value })}
               options={booths.map((b) => ({ value: b.id, label: `${b.booth_number} - ${b.booth_name}` }))}
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             <Select
-              label="Priority"
+              label="Priority Level"
               value={formData.priority}
               onChange={(e) => setFormData({ ...formData, priority: e.target.value as Task["priority"] })}
               options={[
@@ -375,7 +364,7 @@ export default function TasksPage() {
             />
 
             <Select
-              label="Status"
+              label="Task Status"
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value as Task["status"] })}
               options={[
@@ -386,7 +375,7 @@ export default function TasksPage() {
             />
 
             <Input
-              label="Due Date"
+              label="Target Due Date"
               type="date"
               value={formData.due_date}
               onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}

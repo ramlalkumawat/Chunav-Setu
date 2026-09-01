@@ -16,7 +16,7 @@ export function Badge({
   className,
   size = "md",
 }: BadgeProps) {
-  let badgeStyle = "bg-[#F1F3F5] text-[#64748B] border-[#E2E8F0]";
+  let badgeStyle = "bg-[#F8F9FA] text-[#495057] border-[#DEE2E6]";
   let content = children;
 
   if (status) {
@@ -24,26 +24,26 @@ export function Badge({
     badgeStyle = badgeInfo.bg;
     if (!children) content = badgeInfo.label;
   } else if (variant === "success") {
-    badgeStyle = "bg-[#EAF3EE] text-[#2F6B4F] border-[#C3DEC9]";
+    badgeStyle = "bg-[#E8F5E9] text-[#2E7D32] border-[#C8E6C9]";
   } else if (variant === "warning") {
-    badgeStyle = "bg-[#FEF7EC] text-[#B7791F] border-[#FBE3B8]";
+    badgeStyle = "bg-[#FFF3E0] text-[#E65100] border-[#FFE0B2]";
   } else if (variant === "danger") {
-    badgeStyle = "bg-[#FDF2F2] text-[#B94A48] border-[#F7C6C6]";
+    badgeStyle = "bg-[#FFEBEE] text-[#C62828] border-[#FFCDD2]";
   } else if (variant === "primary") {
-    badgeStyle = "bg-[#EAEFF5] text-[#1F3A5F] border-[#DCE6F1]";
+    badgeStyle = "bg-[#F1ECEF] text-[#714B67] border-[#D9CAD5]";
   } else if (variant === "outline") {
-    badgeStyle = "bg-transparent text-[#172033] border-[#E5E2DC]";
+    badgeStyle = "bg-white text-[#212529] border-[#DEE2E6]";
   }
 
   const sizeStyles = {
-    sm: "text-[11px] px-2 py-0.5 font-medium",
-    md: "text-xs px-2.5 py-1 font-semibold",
+    sm: "text-[11px] px-1.5 py-0.5 font-medium leading-none",
+    md: "text-xs px-2 py-0.5 font-medium leading-tight",
   };
 
   return (
     <span
       className={cn(
-        "inline-flex items-center justify-center rounded-full border capitalize tracking-tight select-none",
+        "inline-flex items-center justify-center rounded-[3px] border capitalize tracking-normal select-none",
         sizeStyles[size],
         badgeStyle,
         className

@@ -8,10 +8,10 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { formatDate, formatDateTime, formatNumber } from "@/lib/utils";
+import { formatDateTime, formatNumber } from "@/lib/utils";
 import {
   Users,
-  Building2,
+  Building,
   UserCheck,
   CheckCircle2,
   Clock,
@@ -19,9 +19,10 @@ import {
   Compass,
   ArrowRight,
   Plus,
-  TrendingUp,
-  AlertCircle,
   FileSpreadsheet,
+  Download,
+  Filter,
+  Layers,
 } from "lucide-react";
 import {
   BarChart,
@@ -36,7 +37,7 @@ import {
 } from "recharts";
 
 export default function ClientDashboardPage() {
-  const { client } = useAuth();
+  const { client, user, quickLoginDemo } = useAuth();
   const clientId = client?.id || "client-1";
 
   const [stats, setStats] = useState<any>(null);
@@ -48,133 +49,140 @@ export default function ClientDashboardPage() {
   if (!stats) return null;
 
   return (
-    <div className="space-y-6">
-      {/* Campaign Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#E5E2DC]">
+    <div className="space-y-4">
+      {/* Odoo ERP Control Panel / Dashboard Header */}
+      <div className="bg-white border border-[#DEE2E6] rounded-[4px] px-3.5 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-none">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-bold text-[#172033] tracking-tight">
-              {client?.candidate_name || "Candidate"} Campaign Command
-            </h1>
-            <Badge variant="success" size="sm">Active</Badge>
+          <div className="flex items-center gap-1.5 text-[11px] text-[#6C757D]">
+            <span>Campaign</span>
+            <span>/</span>
+            <span className="font-semibold text-[#212529]">Overview & Analytics</span>
           </div>
-          <p className="text-xs text-[#64748B] mt-0.5">
+          <div className="flex items-center gap-2 mt-0.5">
+            <h1 className="text-lg font-bold text-[#212529] tracking-tight">
+              {client?.candidate_name || "Candidate"} Dashboard
+            </h1>
+            <Badge status="active" size="sm" />
+          </div>
+          <p className="text-xs text-[#6C757D]">
             {client?.election_type} • {client?.location} • {client?.campaign_name}
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <Link href="/client/voters/import">
-            <Button variant="outline" size="sm" leftIcon={<FileSpreadsheet className="w-4 h-4" />}>
-              Import CSV
+            <Button variant="secondary" size="sm" leftIcon={<FileSpreadsheet className="w-3.5 h-3.5 text-[#6C757D]" />}>
+              Import Voters
             </Button>
           </Link>
           <Link href="/client/tasks">
-            <Button size="sm" leftIcon={<Plus className="w-4 h-4" />}>
+            <Button size="sm" variant="primary" leftIcon={<Plus className="w-3.5 h-3.5" />}>
               New Task
             </Button>
           </Link>
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+      {/* Compact ERP KPI Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <StatCard
           title="Total Voters"
           value={stats.totalVoters}
           icon={Users}
-          iconColor="text-[#1F3A5F]"
-          iconBg="bg-[#EAEFF5]"
+          iconColor="text-[#714B67]"
+          iconBg="bg-[#F1ECEF]"
+          trend={{ value: "+3.8%", isPositive: true, label: "vs last wk" }}
         />
         <StatCard
           title="Polling Booths"
           value={stats.totalBooths}
-          icon={Building2}
-          iconColor="text-[#1F3A5F]"
-          iconBg="bg-[#EAEFF5]"
+          icon={Building}
+          iconColor="text-[#714B67]"
+          iconBg="bg-[#F1ECEF]"
         />
         <StatCard
-          title="Field Volunteers"
+          title="Volunteers"
           value={stats.totalVolunteers}
           icon={UserCheck}
-          iconColor="text-[#1F3A5F]"
-          iconBg="bg-[#EAEFF5]"
+          iconColor="text-[#714B67]"
+          iconBg="bg-[#F1ECEF]"
         />
         <StatCard
-          title="Voters Contacted"
+          title="Contacted"
           value={stats.contacted}
           subValue={`${stats.contactPercentage}%`}
           icon={CheckCircle2}
-          iconColor="text-[#2F6B4F]"
-          iconBg="bg-[#EAF3EE]"
+          iconColor="text-[#2E7D32]"
+          iconBg="bg-[#E8F5E9]"
+          trend={{ value: `${stats.contactPercentage}%`, isPositive: true, label: "canvassed" }}
         />
         <StatCard
-          title="Pending Follow-ups"
+          title="Follow-ups Due"
           value={stats.pendingFollowUps}
           icon={Clock}
-          iconColor="text-[#B7791F]"
-          iconBg="bg-[#FEF7EC]"
+          iconColor="text-[#E65100]"
+          iconBg="bg-[#FFF3E0]"
         />
         <StatCard
           title="Active Tasks"
           value={stats.pendingTasks}
           subValue={`${stats.completedTasks} done`}
           icon={CheckSquare}
-          iconColor="text-[#1F3A5F]"
-          iconBg="bg-[#EAEFF5]"
+          iconColor="text-[#714B67]"
+          iconBg="bg-[#F1ECEF]"
         />
       </div>
 
-      {/* Visual Analytics Row (Recharts) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Booth Coverage Bar Chart */}
+      {/* Charts & Analytics Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Booth Contact Progress (ERP Bar Chart) */}
         <Card padding="md" className="lg:col-span-2">
           <CardHeader
-            title="Booth-wise Contact Coverage"
-            subtitle="Percentage of verified registered voters contacted per booth"
+            title="Booth-wise Voter Outreach Coverage"
+            subtitle="Percentage of registered electors contacted per polling station"
             action={
               <Link href="/client/booths">
-                <Button variant="ghost" size="sm">
+                <Button variant="secondary" size="sm">
                   View Booths
                 </Button>
               </Link>
             }
           />
-          <div className="h-64 w-full mt-2">
+          <div className="h-60 w-full mt-1">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={stats.boothBreakdown}
                 layout="vertical"
                 margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
               >
-                <XAxis type="number" domain={[0, 100]} unit="%" tick={{ fontSize: 11, fill: "#64748B" }} />
-                <YAxis dataKey="name" type="category" tick={{ fontSize: 11, fill: "#172033", fontWeight: 600 }} />
+                <XAxis type="number" domain={[0, 100]} unit="%" tick={{ fontSize: 11, fill: "#6C757D" }} />
+                <YAxis dataKey="name" type="category" tick={{ fontSize: 11, fill: "#212529", fontWeight: 500 }} width={120} />
                 <Tooltip
-                  formatter={(value: any) => [`${value}% Coverage`, "Progress"]}
-                  contentStyle={{ backgroundColor: "#FFFFFF", borderColor: "#E5E2DC", borderRadius: 8, fontSize: 12 }}
+                  formatter={(value: any) => [`${value}% Contacted`, "Coverage"]}
+                  contentStyle={{ backgroundColor: "#FFFFFF", borderColor: "#DEE2E6", borderRadius: 4, fontSize: 12, padding: "6px 10px" }}
                 />
-                <Bar dataKey="progress" fill="#1F3A5F" radius={[0, 4, 4, 0]} barSize={20} />
+                <Bar dataKey="progress" fill="#714B67" radius={[0, 2, 2, 0]} barSize={18} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </Card>
 
-        {/* Voter Sentiment Distribution Pie Chart */}
+        {/* Voter Sentiment Distribution (ERP Pie Chart) */}
         <Card padding="md">
           <CardHeader
-            title="Voter Sentiment Breakdown"
-            subtitle="Feedback from door-to-door visits"
+            title="Electoral Sentiment"
+            subtitle="Feedback distribution from field surveys"
           />
-          <div className="h-44 w-full flex items-center justify-center">
+          <div className="h-40 w-full flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={stats.statusDistribution}
                   cx="50%"
                   cy="50%"
-                  innerRadius={45}
-                  outerRadius={70}
-                  paddingAngle={3}
+                  innerRadius={38}
+                  outerRadius={62}
+                  paddingAngle={2}
                   dataKey="value"
                 >
                   {stats.statusDistribution.map((entry: any, index: number) => (
@@ -182,121 +190,146 @@ export default function ClientDashboardPage() {
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(val: any, name: any) => [`${val} voters`, name]}
-                  contentStyle={{ backgroundColor: "#FFFFFF", borderColor: "#E5E2DC", borderRadius: 8, fontSize: 12 }}
+                  formatter={(val: any, name: any) => [`${val} electors`, name]}
+                  contentStyle={{ backgroundColor: "#FFFFFF", borderColor: "#DEE2E6", borderRadius: 4, fontSize: 12 }}
                 />
               </PieChart>
             </ResponsiveContainer>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-[#E5E2DC] grid grid-cols-2 gap-2 text-xs">
+          <div className="mt-3 pt-2.5 border-t border-[#DEE2E6] grid grid-cols-2 gap-1.5 text-xs">
             {stats.statusDistribution.map((item: any) => (
               <div key={item.name} className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                <span className="text-[#64748B]">{item.name}:</span>
-                <span className="font-bold text-[#172033]">{item.value}</span>
+                <span className="w-2.5 h-2.5 rounded-[2px]" style={{ backgroundColor: item.color }} />
+                <span className="text-[#6C757D] text-[11px] truncate">{item.name}:</span>
+                <span className="font-semibold text-[#212529] text-[11px]">{item.value}</span>
               </div>
             ))}
           </div>
         </Card>
       </div>
 
-      {/* Operational Feed: Follow-ups & Recent Field Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Today's Follow-ups */}
-        <Card padding="md">
-          <CardHeader
-            title="Today's Priority Follow-ups"
-            subtitle="Scheduled callbacks and second-round visits"
-            action={
-              <Link href="/client/follow-ups">
-                <Button variant="ghost" size="sm">
-                  View All
-                </Button>
-              </Link>
-            }
-          />
-          <div className="space-y-3">
-            {stats.todaysFollowUps.map((f: any) => (
-              <div
-                key={f.id}
-                className="p-3 bg-[#FAFAF8] border border-[#E5E2DC] rounded-lg flex items-start justify-between gap-3 text-xs"
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-[#172033]">{f.voter_name}</span>
-                    <Badge status={f.priority} size="sm" />
-                  </div>
-                  <p className="text-[#64748B] mt-1 line-clamp-1">{f.note}</p>
-                  <p className="text-[11px] text-[#1F3A5F] mt-1 font-medium">
-                    Assigned: {f.volunteer_name || "Unassigned"} • {f.booth_name}
-                  </p>
-                </div>
-                <Link href="/client/follow-ups">
-                  <button className="px-2.5 py-1 rounded bg-white border border-[#E5E2DC] hover:bg-[#F7F6F2] font-semibold text-[11px] text-[#1F3A5F] whitespace-nowrap">
-                    Review
-                  </button>
-                </Link>
-              </div>
-            ))}
-            {stats.todaysFollowUps.length === 0 && (
-              <p className="text-xs text-[#64748B] text-center py-6">
-                No pending follow-ups scheduled for today.
-              </p>
-            )}
+      {/* Operational Grids: Today's Follow-ups & Field Activity Stream */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Today's Follow-ups (Dense ERP List) */}
+        <Card padding="none">
+          <div className="px-3.5 py-2.5 border-b border-[#DEE2E6] flex items-center justify-between bg-[#F8F9FA]">
+            <div>
+              <h3 className="text-xs font-semibold text-[#212529] uppercase tracking-wider">
+                Priority Follow-up Queue
+              </h3>
+              <p className="text-[11px] text-[#6C757D]">Scheduled voter callbacks and pending visits</p>
+            </div>
+            <Link href="/client/follow-ups">
+              <Button variant="secondary" size="sm">
+                View Queue
+              </Button>
+            </Link>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="odoo-table">
+              <thead>
+                <tr>
+                  <th>Voter</th>
+                  <th>Booth / Ward</th>
+                  <th>Priority</th>
+                  <th>Assigned</th>
+                  <th className="text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.todaysFollowUps.map((f: any) => (
+                  <tr key={f.id}>
+                    <td>
+                      <p className="font-semibold text-[#212529]">{f.voter_name}</p>
+                      <p className="text-[11px] text-[#6C757D] truncate max-w-[160px]">{f.note}</p>
+                    </td>
+                    <td className="text-xs text-[#495057]">{f.booth_name}</td>
+                    <td>
+                      <Badge status={f.priority} size="sm" />
+                    </td>
+                    <td className="text-xs text-[#6C757D]">
+                      {f.volunteer_name || "Unassigned"}
+                    </td>
+                    <td className="text-right">
+                      <Link href="/client/follow-ups">
+                        <button className="px-2 py-0.5 text-[11px] font-medium text-[#714B67] bg-white border border-[#DEE2E6] hover:bg-[#F8F9FA] rounded-[3px]">
+                          Resolve
+                        </button>
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+                {stats.todaysFollowUps.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="text-center py-6 text-xs text-[#6C757D]">
+                      No pending follow-ups scheduled for today.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </Card>
 
-        {/* Live Field Activity Stream */}
-        <Card padding="md">
-          <CardHeader
-            title="Live Field Activity Feed"
-            subtitle="Real-time door-to-door submissions by volunteers"
-            action={
-              <Link href="/client/field-work">
-                <Button variant="ghost" size="sm">
-                  Full Stream
-                </Button>
-              </Link>
-            }
-          />
-          <div className="space-y-3">
-            {stats.recentActivities.map((act: any) => (
-              <div
-                key={act.id}
-                className="p-3 bg-[#FAFAF8] border border-[#E5E2DC] rounded-lg flex items-start justify-between gap-3 text-xs"
-              >
-                <div className="flex items-start gap-2.5">
-                  <div className="w-6 h-6 rounded-full bg-[#EAEFF5] text-[#1F3A5F] flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Compass className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-[#172033]">{act.voter_name}</span>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-white border border-[#E5E2DC] text-[#2F6B4F]">
-                        {act.outcome}
-                      </span>
-                    </div>
-                    {act.notes && (
-                      <p className="text-[#64748B] mt-0.5 line-clamp-1 italic">
-                        "{act.notes}"
-                      </p>
-                    )}
-                    <p className="text-[10px] text-[#64748B] mt-1">
-                      Logged by <strong>{act.volunteer_name}</strong> • {act.booth_name}
-                    </p>
-                  </div>
-                </div>
-                <span className="text-[10px] text-[#64748B] font-mono whitespace-nowrap">
-                  {formatDateTime(act.created_at)}
-                </span>
-              </div>
-            ))}
-            {stats.recentActivities.length === 0 && (
-              <p className="text-xs text-[#64748B] text-center py-6">
-                No field surveys recorded yet. Dispatched volunteers will appear here.
-              </p>
-            )}
+        {/* Live Field Activity Feed */}
+        <Card padding="none">
+          <div className="px-3.5 py-2.5 border-b border-[#DEE2E6] flex items-center justify-between bg-[#F8F9FA]">
+            <div>
+              <h3 className="text-xs font-semibold text-[#212529] uppercase tracking-wider">
+                Field Activity Log
+              </h3>
+              <p className="text-[11px] text-[#6C757D]">Real-time door-to-door submissions</p>
+            </div>
+            <Link href="/client/field-work">
+              <Button variant="secondary" size="sm">
+                Full Log
+              </Button>
+            </Link>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="odoo-table">
+              <thead>
+                <tr>
+                  <th>Voter</th>
+                  <th>Outcome</th>
+                  <th>Volunteer</th>
+                  <th className="text-right">Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.recentActivities.map((act: any) => (
+                  <tr key={act.id}>
+                    <td>
+                      <p className="font-semibold text-[#212529]">{act.voter_name}</p>
+                      {act.notes && (
+                        <p className="text-[11px] text-[#6C757D] italic truncate max-w-[160px]">
+                          "{act.notes}"
+                        </p>
+                      )}
+                    </td>
+                    <td>
+                      <Badge status={act.outcome} size="sm" />
+                    </td>
+                    <td className="text-xs text-[#495057]">
+                      {act.volunteer_name} <span className="text-[#6C757D] text-[10px]">({act.booth_name})</span>
+                    </td>
+                    <td className="text-right text-[11px] text-[#6C757D] font-mono">
+                      {formatDateTime(act.created_at)}
+                    </td>
+                  </tr>
+                ))}
+                {stats.recentActivities.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="text-center py-6 text-xs text-[#6C757D]">
+                      No field survey activities logged yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </Card>
       </div>

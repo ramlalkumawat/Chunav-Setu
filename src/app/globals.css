@@ -4,45 +4,90 @@
 
 @layer base {
   :root {
-    --background: #F7F6F2;
+    --background: #F7F7F7;
     --card: #FFFFFF;
-    --primary: #1F3A5F;
-    --text: #172033;
-    --secondary-text: #64748B;
-    --border: #E5E2DC;
-    --success: #2F6B4F;
-    --warning: #B7791F;
-    --danger: #B94A48;
+    --border: #DEE2E6;
+    --text-primary: #212529;
+    --text-secondary: #6C757D;
+    --primary-action: #714B67;
+    --primary-hover: #5E3E55;
+    --primary-light: #F1ECEF;
+    --success: #2E7D32;
+    --warning: #E65100;
+    --danger: #C62828;
   }
 
   body {
-    background-color: #F7F6F2;
-    color: #172033;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    background-color: #F7F7F7;
+    color: #212529;
+    font-size: 14px;
+    line-height: 1.45;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Custom scrollbar for clean enterprise look */
+  /* Odoo ERP subtle crisp scrollbars */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    background: #F7F6F2;
+    background: #F7F7F7;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #CBD5E1;
-    border-radius: 4px;
+    background: #CED4DA;
+    border-radius: 2px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #94A3B8;
+    background: #ADB5BD;
   }
 }
 
+/* Odoo-style table utilities */
+.odoo-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.odoo-table th {
+  background-color: #F8F9FA;
+  color: #495057;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #DEE2E6;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.odoo-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #E9ECEF;
+  color: #212529;
+  vertical-align: middle;
+}
+
+.odoo-table tr:hover td {
+  background-color: #F8F9FA;
+}
+
+.odoo-table tr.selected td {
+  background-color: #F1ECEF;
+}
+
+/* Odoo form sheet */
+.odoo-sheet {
+  background: #FFFFFF;
+  border: 1px solid #DEE2E6;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+}
+
+/* Safe area for mobile */
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 8px);
 }

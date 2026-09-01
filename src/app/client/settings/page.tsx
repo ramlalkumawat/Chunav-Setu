@@ -7,9 +7,8 @@ import { useToast } from "@/lib/context/toast-context";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Textarea } from "@/components/ui/Textarea";
-import { Select } from "@/components/ui/Select";
-import { Settings, ShieldCheck, Building2 } from "lucide-react";
+import { OdooControlPanel } from "@/components/ui/OdooControlPanel";
+import { ShieldCheck } from "lucide-react";
 
 export default function CampaignSettingsPage() {
   const { client, user } = useAuth();
@@ -37,93 +36,101 @@ export default function CampaignSettingsPage() {
       formData,
       clientId
     );
-    success("Settings Updated", "Campaign parameters saved.");
+    success("Settings Saved", "Campaign parameters updated successfully.");
   };
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-[#172033] tracking-tight">
-          Campaign Settings & Profile
-        </h1>
-        <p className="text-xs text-[#64748B] mt-0.5">
-          Configure constituency parameters, official candidate contact, and security preferences
-        </p>
-      </div>
+    <div className="space-y-3 max-w-3xl">
+      {/* Odoo Control Panel */}
+      <OdooControlPanel
+        breadcrumb="Campaign"
+        title="Settings & Configuration"
+        subtitle="Manage candidate parameters, constituency profile, and tenant security status"
+        primaryAction={{
+          label: "Save Changes",
+          onClick: () => {
+            const form = document.getElementById("settings-form") as HTMLFormElement;
+            if (form) form.requestSubmit();
+          },
+        }}
+      />
 
-      <Card padding="md">
-        <CardHeader
-          title="Candidate & Election Information"
-          subtitle="Constituency details displayed on volunteer mobile apps and reports"
-        />
+      {/* Form Sheet */}
+      <div className="bg-white border border-[#DEE2E6] rounded-[4px] p-4 sm:p-5 shadow-none">
+        <form id="settings-form" onSubmit={handleSave} className="space-y-4 text-xs">
+          {/* General Information Group */}
+          <div className="p-3 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[3px] space-y-2.5">
+            <p className="text-[11px] font-semibold text-[#6C757D] uppercase tracking-wider">
+              Candidate Profile
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <Input
+                label="Candidate Full Name"
+                value={formData.candidate_name}
+                onChange={(e) => setFormData({ ...formData, candidate_name: e.target.value })}
+                required
+              />
+              <Input
+                label="Campaign Committee Name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+              />
+            </div>
 
-        <form onSubmit={handleSave} className="space-y-4 text-xs">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Input
-              label="Candidate Full Name"
-              value={formData.candidate_name}
-              onChange={(e) => setFormData({ ...formData, candidate_name: e.target.value })}
-              required
-            />
-            <Input
-              label="Campaign Committee Name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <Input
+                label="Official Contact Mobile"
+                value={formData.mobile}
+                onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
+                required
+              />
+              <Input
+                label="Official Campaign Email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
+              />
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Input
-              label="Official Contact Mobile"
-              value={formData.mobile}
-              onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
-              required
-            />
-            <Input
-              label="Official Campaign Email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              required
-            />
+          {/* Constituency Information Group */}
+          <div className="p-3 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[3px] space-y-2.5">
+            <p className="text-[11px] font-semibold text-[#6C757D] uppercase tracking-wider">
+              Constituency & Electoral Details
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <Input
+                label="Campaign Title"
+                value={formData.campaign_name}
+                onChange={(e) => setFormData({ ...formData, campaign_name: e.target.value })}
+                required
+              />
+              <Input
+                label="Constituency / AC / Ward"
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                required
+              />
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Input
-              label="Campaign Title"
-              value={formData.campaign_name}
-              onChange={(e) => setFormData({ ...formData, campaign_name: e.target.value })}
-              required
-            />
-            <Input
-              label="Constituency / Ward"
-              value={formData.location}
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-              required
-            />
+          {/* Security & Multi-Tenancy */}
+          <div className="p-3 bg-[#E8F5E9] border border-[#C8E6C9] rounded-[3px] text-xs flex items-center gap-2.5">
+            <ShieldCheck className="w-4 h-4 text-[#2E7D32] flex-shrink-0" />
+            <p className="text-[#2E7D32]">
+              <strong>Multi-Tenant Isolation Active:</strong> All records are partitioned by tenant <code className="bg-white/70 px-1 py-0.5 rounded text-[11px] font-mono text-[#2E7D32]">{clientId}</code>.
+            </p>
           </div>
 
-          <div className="flex justify-end pt-2">
-            <Button type="submit" size="sm">
-              Save Campaign Parameters
+          <div className="flex justify-end pt-1">
+            <Button type="submit" size="sm" variant="primary">
+              Save Campaign Settings
             </Button>
           </div>
         </form>
-      </Card>
-
-      <Card padding="md">
-        <CardHeader
-          title="Tenant Isolation Status"
-          subtitle="PostgreSQL Row Level Security tenant enforcement"
-        />
-        <div className="p-3 bg-[#EAF3EE] border border-[#C3DEC9] rounded-lg text-xs flex items-center gap-3">
-          <ShieldCheck className="w-5 h-5 text-[#2F6B4F] flex-shrink-0" />
-          <p className="text-[#2F6B4F]">
-            <strong>Tenant Isolation Active:</strong> All voter, booth, task, and volunteer data is strictly partitioned by <code className="bg-white/60 px-1 py-0.5 rounded font-mono">{clientId}</code>.
-          </p>
-        </div>
-      </Card>
+      </div>
     </div>
   );
 }

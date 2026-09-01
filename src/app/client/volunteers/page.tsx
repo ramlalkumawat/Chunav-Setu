@@ -13,19 +13,16 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { OdooControlPanel } from "@/components/ui/OdooControlPanel";
 import { formatDate } from "@/lib/utils";
 import {
   UserCheck,
   Plus,
   Search,
-  Building2,
+  Building,
   Edit2,
   Power,
-  Phone,
-  Mail,
   KeyRound,
-  CheckSquare,
-  Compass,
 } from "lucide-react";
 
 export default function VolunteersPage() {
@@ -177,103 +174,91 @@ export default function VolunteersPage() {
 
   const handleResetPassword = () => {
     if (!resetVol) return;
-    success("Credentials Dispatched", `Temporary password sent via SMS to ${resetVol.mobile}.`);
+    success("Credentials Sent", `Temporary password sent via SMS to ${resetVol.mobile}.`);
     setResetVol(null);
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-[#172033] tracking-tight">
-            Volunteer Force & Cadre
-          </h1>
-          <p className="text-xs text-[#64748B] mt-0.5">
-            Manage field canvassers, booth assignments, mobile app credentials, and tasks
-          </p>
-        </div>
+    <div className="space-y-3">
+      {/* Odoo Control Panel */}
+      <OdooControlPanel
+        breadcrumb="Campaign"
+        title="Volunteers & Cadre"
+        subtitle="Manage grassroots field staff, booth assignments, and mobile app accounts"
+        primaryAction={{
+          label: "Add Volunteer",
+          onClick: handleOpenAdd,
+          icon: <Plus className="w-3.5 h-3.5" />,
+        }}
+        searchPlaceholder="Search volunteer name, phone, booth..."
+        searchValue={search}
+        onSearchChange={setSearch}
+      />
 
-        <Button size="sm" leftIcon={<Plus className="w-4 h-4" />} onClick={handleOpenAdd}>
-          Add Field Volunteer
-        </Button>
-      </div>
-
-      {/* Search Bar */}
-      <div className="max-w-md">
-        <Input
-          placeholder="Search volunteer name, phone, booth..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          leftIcon={<Search className="w-4 h-4" />}
-        />
-      </div>
-
-      {/* Volunteer Table */}
-      <Card padding="none">
+      {/* Dense Odoo Table */}
+      <div className="bg-white border border-[#DEE2E6] rounded-[4px] overflow-hidden shadow-none">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-[#FAFAF8] text-[#64748B] font-semibold border-b border-[#E5E2DC] uppercase tracking-wider">
+          <table className="odoo-table">
+            <thead>
               <tr>
-                <th className="px-5 py-3">Volunteer</th>
-                <th className="px-5 py-3">Contact</th>
-                <th className="px-5 py-3">Assigned Area</th>
-                <th className="px-5 py-3">Assigned Booth</th>
-                <th className="px-5 py-3 text-center">Tasks</th>
-                <th className="px-5 py-3 text-center">Surveys Logged</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Actions</th>
+                <th>Volunteer Name</th>
+                <th>Mobile & Contact</th>
+                <th>Ward / Area</th>
+                <th>Assigned Polling Station</th>
+                <th className="text-center">Pending Tasks</th>
+                <th className="text-center">Surveys Logged</th>
+                <th>Status</th>
+                <th className="text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E5E2DC] text-[#172033]">
+            <tbody>
               {filteredVolunteers.map((vol) => (
-                <tr key={vol.id} className="hover:bg-[#F7F6F2]/50 transition-colors">
-                  <td className="px-5 py-4">
-                    <p className="font-bold text-[#172033]">{vol.name}</p>
-                    <p className="text-[11px] text-[#64748B]">Joined: {formatDate(vol.joining_date)}</p>
+                <tr key={vol.id}>
+                  <td>
+                    <p className="font-semibold text-[#212529]">{vol.name}</p>
+                    <p className="text-[11px] text-[#6C757D]">Joined: {formatDate(vol.joining_date)}</p>
                   </td>
-                  <td className="px-5 py-4 text-[#64748B]">
-                    <p className="font-mono text-[#172033] font-medium">{vol.mobile}</p>
-                    {vol.email && <p className="text-[11px] text-[#64748B]">{vol.email}</p>}
+                  <td className="text-xs">
+                    <p className="font-mono text-[#212529] font-medium">{vol.mobile}</p>
+                    {vol.email && <p className="text-[11px] text-[#6C757D]">{vol.email}</p>}
                   </td>
-                  <td className="px-5 py-4 font-medium">{vol.assigned_area_name || "Unassigned"}</td>
-                  <td className="px-5 py-4 font-medium text-[#1F3A5F]">
+                  <td className="text-xs text-[#495057]">{vol.assigned_area_name || "—"}</td>
+                  <td className="text-xs font-medium text-[#714B67]">
                     {vol.assigned_booth_name || "Unassigned"}
                   </td>
-                  <td className="px-5 py-4 text-center">
-                    <span className="font-bold text-[#172033]">{vol.pending_tasks || 0}</span>
-                    <span className="text-[#64748B] text-[11px]"> pending</span>
+                  <td className="text-center text-xs">
+                    <span className="font-semibold text-[#212529]">{vol.pending_tasks || 0}</span>
                   </td>
-                  <td className="px-5 py-4 text-center font-bold text-[#2F6B4F]">
+                  <td className="text-center text-xs font-semibold text-[#2E7D32]">
                     {vol.total_contacts || 0}
                   </td>
-                  <td className="px-5 py-4">
+                  <td>
                     <Badge status={vol.status} size="sm" />
                   </td>
-                  <td className="px-5 py-4 text-right">
+                  <td className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => setResetVol(vol)}
-                        className="p-1.5 rounded hover:bg-[#F7F6F2] text-[#64748B] hover:text-[#172033]"
-                        title="Reset Mobile App PIN / Password"
+                        className="p-1 rounded hover:bg-[#F8F9FA] text-[#6C757D] hover:text-[#212529]"
+                        title="Reset Mobile App Credentials"
                       >
-                        <KeyRound className="w-4 h-4" />
+                        <KeyRound className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => handleOpenEdit(vol)}
-                        className="p-1.5 rounded hover:bg-[#F7F6F2] text-[#64748B] hover:text-[#172033]"
+                        className="p-1 rounded hover:bg-[#F8F9FA] text-[#6C757D] hover:text-[#212529]"
                         title="Edit Volunteer"
                       >
-                        <Edit2 className="w-4 h-4" />
+                        <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => setStatusVol(vol)}
-                        className={`p-1.5 rounded hover:bg-[#F7F6F2] ${
-                          vol.status === "active" ? "text-[#2F6B4F]" : "text-[#B94A48]"
+                        className={`p-1 rounded hover:bg-[#F8F9FA] ${
+                          vol.status === "active" ? "text-[#2E7D32]" : "text-[#C62828]"
                         }`}
                         title={vol.status === "active" ? "Deactivate Volunteer" : "Activate"}
                       >
-                        <Power className="w-4 h-4" />
+                        <Power className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </td>
@@ -281,30 +266,30 @@ export default function VolunteersPage() {
               ))}
               {filteredVolunteers.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-5 py-8 text-center text-xs text-[#64748B]">
-                    No volunteers found. Click "Add Field Volunteer" to enroll canvassers.
+                  <td colSpan={8} className="text-center py-8 text-xs text-[#6C757D]">
+                    No volunteers found matching your query.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
 
       {/* Add / Edit Volunteer Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingVol ? "Edit Volunteer Profile" : "Enroll Field Volunteer"}
-        subtitle="Provide contact details and assign responsibility for specific booths"
+        title={editingVol ? `Edit Volunteer: ${editingVol.name}` : "New Volunteer Account"}
+        subtitle="Campaign Cadre Configuration Sheet"
         maxWidth="md"
         footer={
           <>
-            <Button variant="outline" size="sm" onClick={() => setIsModalOpen(false)}>
-              Cancel
+            <Button variant="secondary" size="sm" onClick={() => setIsModalOpen(false)}>
+              Discard
             </Button>
-            <Button size="sm" onClick={handleSaveVolunteer}>
-              {editingVol ? "Save Changes" : "Create Account"}
+            <Button size="sm" variant="primary" onClick={handleSaveVolunteer}>
+              {editingVol ? "Save Changes" : "Save Record"}
             </Button>
           </>
         }
@@ -318,7 +303,7 @@ export default function VolunteersPage() {
             required
           />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <Input
               label="Mobile Number (Login ID)"
               placeholder="+91 99000 00000"
@@ -335,7 +320,7 @@ export default function VolunteersPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <Select
               label="Assigned Ward / Area"
               value={formData.assigned_area_id}
@@ -361,22 +346,22 @@ export default function VolunteersPage() {
           />
 
           <Textarea
-            label="Specialization / Notes"
-            placeholder="e.g. Youth liaison, SHG coordinator, senior citizen assistance..."
+            label="Notes / Special Responsibilities"
+            placeholder="e.g. Youth wing leader, SHG coordinator, senior citizen transport..."
             value={formData.notes}
             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
           />
         </form>
       </Modal>
 
-      {/* Reset Credentials Confirmation */}
+      {/* Reset Password Confirmation */}
       {resetVol && (
         <ConfirmDialog
           isOpen={true}
           onClose={() => setResetVol(null)}
           onConfirm={handleResetPassword}
           title="Reset Volunteer Credentials"
-          message={`Generate and send a temporary login passcode for ${resetVol.name} (${resetVol.mobile})?`}
+          message={`Generate and send a temporary login PIN for ${resetVol.name} (${resetVol.mobile})?`}
           confirmText="Send Password Reset"
           variant="primary"
         />

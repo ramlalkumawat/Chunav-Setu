@@ -24,20 +24,20 @@ export function ConfirmDialog({
   title,
   message,
   confirmText = "Confirm",
-  cancelText = "Cancel",
+  cancelText = "Discard",
   variant = "danger",
   isLoading = false,
 }: ConfirmDialogProps) {
   const Icon = variant === "primary" ? Info : AlertTriangle;
   const iconColor =
     variant === "danger"
-      ? "text-[#B94A48] bg-[#FDF2F2]"
+      ? "text-[#C62828] bg-[#FFEBEE] border-[#FFCDD2]"
       : variant === "warning"
-      ? "text-[#B7791F] bg-[#FEF7EC]"
-      : "text-[#1F3A5F] bg-[#EAEFF5]";
+      ? "text-[#E65100] bg-[#FFF3E0] border-[#FFE0B2]"
+      : "text-[#714B67] bg-[#F1ECEF] border-[#D9CAD5]";
 
   const buttonVariant =
-    variant === "danger" ? "danger" : variant === "warning" ? "primary" : "primary";
+    variant === "danger" ? "danger" : "primary";
 
   return (
     <Modal
@@ -47,7 +47,7 @@ export function ConfirmDialog({
       maxWidth="sm"
       footer={
         <>
-          <Button variant="outline" size="sm" onClick={onClose} disabled={isLoading}>
+          <Button variant="secondary" size="sm" onClick={onClose} disabled={isLoading}>
             {cancelText}
           </Button>
           <Button
@@ -62,10 +62,10 @@ export function ConfirmDialog({
       }
     >
       <div className="flex items-start gap-3">
-        <div className={`p-2.5 rounded-lg flex-shrink-0 ${iconColor}`}>
-          <Icon className="w-5 h-5" />
+        <div className={`p-2 rounded-[3px] border flex-shrink-0 ${iconColor}`}>
+          <Icon className="w-4 h-4" />
         </div>
-        <p className="text-xs sm:text-sm text-[#64748B] leading-relaxed mt-1">
+        <p className="text-xs text-[#6C757D] leading-relaxed mt-0.5">
           {message}
         </p>
       </div>

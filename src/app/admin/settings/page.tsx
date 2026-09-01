@@ -6,7 +6,8 @@ import { useToast } from "@/lib/context/toast-context";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { RotateCcw, Database, Shield, Server } from "lucide-react";
+import { OdooControlPanel } from "@/components/ui/OdooControlPanel";
+import { RotateCcw, Database, Server } from "lucide-react";
 
 export default function AdminSettingsPage() {
   const { success } = useToast();
@@ -18,73 +19,72 @@ export default function AdminSettingsPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-[#172033] tracking-tight">
-          System & Platform Settings
-        </h1>
-        <p className="text-xs text-[#64748B] mt-0.5">
-          Global SaaS configuration, database management, and maintenance controls
-        </p>
+    <div className="space-y-3 max-w-3xl">
+      {/* Odoo Control Panel */}
+      <OdooControlPanel
+        breadcrumb="System"
+        title="Platform Settings"
+        subtitle="Global SaaS multi-tenant configuration, database maintenance, and seed management"
+      />
+
+      {/* Database Maintenance Sheet */}
+      <div className="bg-white border border-[#DEE2E6] rounded-[4px] p-4 sm:p-5 shadow-none space-y-4">
+        <div className="pb-3 border-b border-[#DEE2E6]">
+          <h3 className="text-sm font-semibold text-[#212529]">Platform Storage & Tenant Engine</h3>
+          <p className="text-xs text-[#6C757D]">PostgreSQL schema isolation status</p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+          <div className="p-3 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[3px]">
+            <div className="flex items-center gap-1.5 font-semibold text-[#212529]">
+              <Database className="w-3.5 h-3.5 text-[#714B67]" />
+              <span>Row Level Security (RLS)</span>
+            </div>
+            <p className="text-[#6C757D] mt-1 text-[11px]">
+              Enforced on all tables. Queries automatically scoped to <code className="text-[#714B67] font-semibold">client_id</code>.
+            </p>
+          </div>
+
+          <div className="p-3 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[3px]">
+            <div className="flex items-center gap-1.5 font-semibold text-[#2E7D32]">
+              <Server className="w-3.5 h-3.5 text-[#2E7D32]" />
+              <span>Multi-Tenant Partitioning</span>
+            </div>
+            <p className="text-[#6C757D] mt-1 text-[11px]">
+              Isolated tenant partitions with zero cross-leakage.
+            </p>
+          </div>
+        </div>
+
+        <div className="pt-3 border-t border-[#DEE2E6] flex items-center justify-between">
+          <div>
+            <p className="font-semibold text-xs text-[#212529]">Reset Sample Election Data</p>
+            <p className="text-[11px] text-[#6C757D]">
+              Restores the 3 pre-seeded demo campaigns (Sharma HQ, Verma Samiti, Deshmukh Office).
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+            onClick={handleResetDemoData}
+          >
+            Reset Seed Data
+          </Button>
+        </div>
       </div>
 
-      <Card padding="md">
-        <CardHeader
-          title="Platform Database & Storage"
-          subtitle="PostgreSQL multi-tenant engine status and maintenance tools"
-        />
-        <div className="space-y-4 text-xs">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="p-3.5 bg-[#FAFAF8] border border-[#E5E2DC] rounded-lg">
-              <div className="flex items-center gap-2 font-bold text-[#172033]">
-                <Database className="w-4 h-4 text-[#1F3A5F]" />
-                <span>Row Level Security (RLS)</span>
-              </div>
-              <p className="text-[#64748B] mt-1">
-                Enforced on all tables. Queries automatically scoped to <code className="text-[#1F3A5F]">client_id</code>.
-              </p>
-            </div>
-
-            <div className="p-3.5 bg-[#FAFAF8] border border-[#E5E2DC] rounded-lg">
-              <div className="flex items-center gap-2 font-bold text-[#172033]">
-                <Server className="w-4 h-4 text-[#2F6B4F]" />
-                <span>Multi-Tenant Architecture</span>
-              </div>
-              <p className="text-[#64748B] mt-1">
-                Single PostgreSQL database with tenant isolation index clustering.
-              </p>
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-[#E5E2DC] flex items-center justify-between">
-            <div>
-              <p className="font-semibold text-[#172033]">Reset Sample Election Data</p>
-              <p className="text-[#64748B]">
-                Restores the 3 pre-seeded demo campaigns (Sharma HQ, Verma Samiti, Deshmukh Office).
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              leftIcon={<RotateCcw className="w-4 h-4" />}
-              onClick={handleResetDemoData}
-            >
-              Reset Seed Data
-            </Button>
-          </div>
+      {/* Operator Credentials Sheet */}
+      <div className="bg-white border border-[#DEE2E6] rounded-[4px] p-4 sm:p-5 shadow-none space-y-3">
+        <div className="pb-2 border-b border-[#DEE2E6]">
+          <h3 className="text-sm font-semibold text-[#212529]">Administrator Credentials</h3>
+          <p className="text-xs text-[#6C757D]">Current operator session</p>
         </div>
-      </Card>
-
-      <Card padding="md">
-        <CardHeader
-          title="Super Admin Credentials"
-          subtitle="Current administrative operator identity"
-        />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
           <Input label="System Admin Email" value="superadmin@chunavsetu.com" disabled />
-          <Input label="Role Permission" value="Super Administrator (Full Tenant Bypass)" disabled />
+          <Input label="Role Permission" value="Super Administrator (System Root)" disabled />
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

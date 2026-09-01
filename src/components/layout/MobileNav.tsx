@@ -18,7 +18,7 @@ export function MobileNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#E5E2DC] px-2 py-1.5 flex items-center justify-around shadow-modal sm:hidden safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#DEE2E6] px-2 py-1 flex items-center justify-around sm:hidden safe-area-bottom">
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive =
@@ -30,19 +30,17 @@ export function MobileNav() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex flex-col items-center -mt-5"
+              className="flex flex-col items-center -mt-3"
             >
               <div
                 className={cn(
-                  "w-12 h-12 rounded-full flex items-center justify-center shadow-md transition-transform active:scale-95",
-                  isActive
-                    ? "bg-[#1F3A5F] text-white"
-                    : "bg-[#1F3A5F] text-white"
+                  "w-10 h-10 rounded-full flex items-center justify-center transition-transform",
+                  "bg-[#714B67] text-white border border-[#5E3E55]"
                 )}
               >
-                <Icon className="w-6 h-6" />
+                <Icon className="w-5 h-5" />
               </div>
-              <span className="text-[10px] font-semibold text-[#1F3A5F] mt-1">
+              <span className="text-[10px] font-semibold text-[#714B67] mt-0.5">
                 {item.name}
               </span>
             </Link>
@@ -54,13 +52,13 @@ export function MobileNav() {
             key={item.href}
             href={item.href}
             className={cn(
-              "flex flex-col items-center justify-center py-1 px-3 rounded-lg transition-colors min-w-[54px]",
+              "flex flex-col items-center justify-center py-1 px-2.5 rounded-[3px] transition-colors min-w-[50px]",
               isActive
-                ? "text-[#1F3A5F] font-bold"
-                : "text-[#64748B] hover:text-[#172033]"
+                ? "text-[#714B67] font-semibold"
+                : "text-[#6C757D] hover:text-[#212529]"
             )}
           >
-            <Icon className={cn("w-5 h-5", isActive ? "stroke-[2.5]" : "stroke-2")} />
+            <Icon className={cn("w-4 h-4", isActive ? "stroke-[2.5]" : "stroke-2")} />
             <span className="text-[10px] mt-0.5">{item.name}</span>
           </Link>
         );

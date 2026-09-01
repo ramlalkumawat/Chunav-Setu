@@ -23,8 +23,8 @@ export function StatCard({
   value,
   subValue,
   icon: Icon,
-  iconColor = "text-[#1F3A5F]",
-  iconBg = "bg-[#EAEFF5]",
+  iconColor = "text-[#714B67]",
+  iconBg = "bg-[#F1ECEF]",
   trend,
   onClick,
   className,
@@ -35,22 +35,22 @@ export function StatCard({
     <div
       onClick={onClick}
       className={cn(
-        "bg-white border border-[#E5E2DC] rounded-[10px] p-4 sm:p-5 shadow-card transition-all duration-150 flex flex-col justify-between",
-        onClick && "cursor-pointer hover:border-[#1F3A5F]/40 hover:shadow-subtle",
+        "bg-white border border-[#DEE2E6] rounded-[4px] p-3.5 flex flex-col justify-between transition-colors",
+        onClick && "cursor-pointer hover:border-[#714B67] hover:bg-[#FAF9FA]",
         className
       )}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-[#64748B] uppercase tracking-wider truncate">
+          <p className="text-[11px] font-semibold text-[#6C757D] uppercase tracking-wider truncate">
             {title}
           </p>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold text-[#172033] tracking-tight">
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-xl sm:text-2xl font-bold text-[#212529] tracking-tight">
               {formattedValue}
             </span>
             {subValue && (
-              <span className="text-xs text-[#64748B] font-normal">{subValue}</span>
+              <span className="text-xs text-[#6C757D] font-normal">{subValue}</span>
             )}
           </div>
         </div>
@@ -58,28 +58,28 @@ export function StatCard({
         {Icon && (
           <div
             className={cn(
-              "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0",
+              "w-8 h-8 rounded-[4px] flex items-center justify-center flex-shrink-0 border border-transparent",
               iconBg
             )}
           >
-            <Icon className={cn("w-5 h-5", iconColor)} />
+            <Icon className={cn("w-4 h-4", iconColor)} />
           </div>
         )}
       </div>
 
       {trend && (
-        <div className="mt-3 pt-3 border-t border-[#E5E2DC]/60 flex items-center gap-1.5 text-xs">
+        <div className="mt-2.5 pt-2 border-t border-[#DEE2E6] flex items-center gap-1.5 text-xs">
           <span
             className={cn(
-              "font-semibold px-1.5 py-0.5 rounded",
+              "font-semibold px-1.5 py-0.5 rounded-[2px] text-[11px]",
               trend.isPositive
-                ? "bg-[#EAF3EE] text-[#2F6B4F]"
-                : "bg-[#FEF7EC] text-[#B7791F]"
+                ? "bg-[#E8F5E9] text-[#2E7D32]"
+                : "bg-[#FFF3E0] text-[#E65100]"
             )}
           >
             {trend.value}
           </span>
-          {trend.label && <span className="text-[#64748B]">{trend.label}</span>}
+          {trend.label && <span className="text-[#6C757D] text-[11px]">{trend.label}</span>}
         </div>
       )}
     </div>

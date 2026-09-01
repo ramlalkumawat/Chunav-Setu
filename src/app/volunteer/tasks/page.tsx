@@ -5,10 +5,9 @@ import { dbService } from "@/lib/store/data-service";
 import { useAuth } from "@/lib/context/auth-context";
 import { useToast } from "@/lib/context/toast-context";
 import { Task } from "@/lib/types";
-import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatDate } from "@/lib/utils";
-import { CheckSquare, Calendar, Building2, CheckCircle2 } from "lucide-react";
+import { CheckSquare, Calendar, Building, CheckCircle2 } from "lucide-react";
 
 export default function VolunteerTasksPage() {
   const { client, volunteer } = useAuth();
@@ -37,38 +36,37 @@ export default function VolunteerTasksPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div>
-        <h1 className="text-lg font-bold text-[#172033]">My Assigned Tasks</h1>
-        <p className="text-xs text-[#64748B]">Action items dispatched from Campaign HQ</p>
+        <h1 className="text-base font-bold text-[#212529]">My Assigned Tasks</h1>
+        <p className="text-[11px] text-[#6C757D]">Field priorities dispatched from Campaign HQ</p>
       </div>
 
-      <div className="space-y-2.5">
+      <div className="bg-white border border-[#DEE2E6] rounded-[4px] divide-y divide-[#DEE2E6] shadow-none overflow-hidden">
         {tasks.map((task) => {
           const isDone = task.status === "completed";
           return (
-            <Card
+            <div
               key={task.id}
-              padding="sm"
-              className={`transition-all ${isDone ? "opacity-75 bg-[#FAFAF8]" : "bg-white"}`}
+              className={`p-3 transition-colors ${isDone ? "bg-[#F8F9FA] opacity-75" : "bg-white"}`}
             >
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-2.5">
                 <button
                   onClick={() => handleToggleDone(task)}
-                  className={`w-6 h-6 rounded-md border flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
+                  className={`w-5 h-5 rounded-[3px] border flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
                     isDone
-                      ? "bg-[#2F6B4F] border-[#2F6B4F] text-white"
-                      : "border-[#CBD5E1] bg-white hover:border-[#1F3A5F]"
+                      ? "bg-[#2E7D32] border-[#2E7D32] text-white"
+                      : "border-[#DEE2E6] bg-white hover:border-[#714B67]"
                   }`}
                 >
-                  {isDone && <CheckCircle2 className="w-4 h-4" />}
+                  {isDone && <CheckCircle2 className="w-3.5 h-3.5" />}
                 </button>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <h3
-                      className={`font-bold text-sm text-[#172033] ${
-                        isDone ? "line-through text-[#64748B]" : ""
+                      className={`font-semibold text-xs text-[#212529] ${
+                        isDone ? "line-through text-[#6C757D]" : ""
                       }`}
                     >
                       {task.title}
@@ -77,36 +75,34 @@ export default function VolunteerTasksPage() {
                   </div>
 
                   {task.description && (
-                    <p className="text-xs text-[#64748B] mt-1 leading-relaxed">
+                    <p className="text-[11px] text-[#6C757D] mt-1 leading-relaxed">
                       {task.description}
                     </p>
                   )}
 
-                  <div className="mt-2.5 flex flex-wrap items-center gap-3 text-[11px] text-[#64748B]">
+                  <div className="mt-2 flex flex-wrap items-center gap-3 text-[10px] text-[#6C757D]">
                     {task.booth_name && (
-                      <span className="flex items-center gap-1">
-                        <Building2 className="w-3.5 h-3.5" />
+                      <span className="flex items-center gap-1 font-medium text-[#714B67]">
+                        <Building className="w-3 h-3" />
                         <span>{task.booth_name}</span>
                       </span>
                     )}
 
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" />
+                    <span className="flex items-center gap-1 font-mono">
+                      <Calendar className="w-3 h-3" />
                       <span>Due: {formatDate(task.due_date)}</span>
                     </span>
                   </div>
                 </div>
               </div>
-            </Card>
+            </div>
           );
         })}
 
         {tasks.length === 0 && (
-          <Card padding="lg" className="text-center py-10">
-            <CheckSquare className="w-8 h-8 text-[#64748B] mx-auto mb-2 opacity-50" />
-            <p className="text-xs font-semibold text-[#172033]">All tasks completed!</p>
-            <p className="text-xs text-[#64748B] mt-0.5">Check back later for new campaign assignments.</p>
-          </Card>
+          <div className="text-center py-8 text-xs text-[#6C757D]">
+            All field tasks completed!
+          </div>
         )}
       </div>
     </div>

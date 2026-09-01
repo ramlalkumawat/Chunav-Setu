@@ -21,37 +21,34 @@ export function Pagination({
   const endIdx = Math.min(currentPage * pageSize, totalRecords);
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-[#E5E2DC] bg-[#FAFAF8] text-xs text-[#64748B] rounded-b-[10px]">
-      <div>
-        Showing <span className="font-semibold text-[#172033]">{startIdx}</span> to{" "}
-        <span className="font-semibold text-[#172033]">{endIdx}</span> of{" "}
-        <span className="font-semibold text-[#172033]">{totalRecords}</span> entries
+    <div className="flex items-center justify-between px-3 py-2 border-t border-[#DEE2E6] bg-[#F8F9FA] text-xs text-[#6C757D]">
+      <div className="text-[12px]">
+        <span className="font-semibold text-[#212529]">{startIdx}-{endIdx}</span> /{" "}
+        <span className="font-semibold text-[#212529]">{totalRecords}</span>
       </div>
 
-      <div className="flex items-center gap-1.5">
-        <Button
-          variant="outline"
-          size="sm"
+      <div className="flex items-center gap-1">
+        <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage <= 1}
-          leftIcon={<ChevronLeft className="w-4 h-4" />}
+          className="h-7 w-7 flex items-center justify-center rounded-[3px] bg-white border border-[#DEE2E6] hover:bg-[#F8F9FA] text-[#212529] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          title="Previous page"
         >
-          Previous
-        </Button>
+          <ChevronLeft className="w-3.5 h-3.5" />
+        </button>
 
-        <span className="px-2.5 py-1 text-xs font-semibold text-[#172033] bg-white border border-[#E5E2DC] rounded-md">
+        <span className="px-2 py-0.5 text-xs text-[#495057]">
           {currentPage} / {Math.max(1, totalPages)}
         </span>
 
-        <Button
-          variant="outline"
-          size="sm"
+        <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage >= totalPages || totalPages === 0}
-          rightIcon={<ChevronRight className="w-4 h-4" />}
+          className="h-7 w-7 flex items-center justify-center rounded-[3px] bg-white border border-[#DEE2E6] hover:bg-[#F8F9FA] text-[#212529] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          title="Next page"
         >
-          Next
-        </Button>
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
       </div>
     </div>
   );

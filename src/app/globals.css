@@ -17,7 +17,17 @@
     --danger: #C62828;
   }
 
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html,
   body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
     background-color: #F7F7F7;
     color: #212529;
     font-family: var(--font-plus-jakarta), var(--font-noto-devanagari), system-ui, -apple-system, sans-serif;
@@ -25,6 +35,7 @@
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
   }
 
   /* Odoo ERP subtle crisp scrollbars */
@@ -92,4 +103,13 @@
 /* Safe area for mobile */
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 8px);
+}
+
+/* Utility to hide scrollbar on touch devices while keeping scroll functional */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

@@ -46,34 +46,34 @@ export default function ClientDashboardPage() {
   if (!stats) return null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden">
       {/* Control Panel / Dashboard Header */}
-      <div className="bg-white border border-[#DEE2E6] rounded-[4px] px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-none">
-        <div>
-          <div className="flex items-center gap-2 text-[14px] text-[#6C757D] font-medium">
+      <div className="bg-white border border-[#DEE2E6] rounded-[4px] px-3.5 sm:px-5 py-3.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 sm:gap-4 shadow-none w-full max-w-full">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-[14px] text-[#6C757D] font-medium truncate">
             <span>{t("navCampaigns")}</span>
             <span>/</span>
-            <span className="font-semibold text-[#212529]">{t("dashboardTitle")}</span>
+            <span className="font-semibold text-[#212529] truncate">{t("dashboardTitle")}</span>
           </div>
-          <div className="flex items-center gap-3 mt-1">
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#212529] tracking-tight">
+          <div className="flex items-center gap-2 sm:gap-3 mt-1 flex-wrap">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-[#212529] tracking-tight break-words">
               {client?.candidate_name || "Candidate"} {t("navDashboard")}
             </h1>
             <Badge status="active" size="md" />
           </div>
-          <p className="text-sm text-[#6C757D] mt-0.5">
+          <p className="text-xs sm:text-sm text-[#6C757D] mt-0.5 break-words">
             {client?.election_type} • {client?.location} • {client?.campaign_name}
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
           <Link href="/client/voters/import">
-            <Button variant="secondary" size="md" leftIcon={<FileSpreadsheet className="w-4 h-4 text-[#6C757D]" />}>
+            <Button variant="secondary" size="sm" className="h-10 text-xs sm:text-sm" leftIcon={<FileSpreadsheet className="w-4 h-4 text-[#6C757D]" />}>
               {t("importVoters")}
             </Button>
           </Link>
           <Link href="/client/tasks">
-            <Button size="md" variant="primary" leftIcon={<Plus className="w-4 h-4" />}>
+            <Button size="sm" variant="primary" className="h-10 text-xs sm:text-sm" leftIcon={<Plus className="w-4 h-4" />}>
               {t("createTask")}
             </Button>
           </Link>
@@ -81,7 +81,7 @@ export default function ClientDashboardPage() {
       </div>
 
       {/* Prominent ERP KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-4 w-full">
         <StatCard
           title={t("totalVoters")}
           value={stats.totalVoters}
@@ -131,9 +131,9 @@ export default function ClientDashboardPage() {
       </div>
 
       {/* Charts & Analytics Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 w-full">
         {/* Booth Contact Progress (ERP Bar Chart) */}
-        <Card padding="md" className="lg:col-span-2">
+        <Card padding="md" className="lg:col-span-2 w-full max-w-full overflow-hidden">
           <CardHeader
             title={t("boothCoverageTitle")}
             subtitle={t("dashboardSubtitle")}
@@ -145,40 +145,40 @@ export default function ClientDashboardPage() {
               </Link>
             }
           />
-          <div className="h-64 w-full mt-2">
+          <div className="h-64 w-full mt-2 min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={stats.boothBreakdown}
                 layout="vertical"
-                margin={{ top: 5, right: 25, left: 10, bottom: 5 }}
+                margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
               >
-                <XAxis type="number" domain={[0, 100]} unit="%" tick={{ fontSize: 13, fill: "#6C757D" }} />
-                <YAxis dataKey="name" type="category" tick={{ fontSize: 13, fill: "#212529", fontWeight: 600 }} width={130} />
+                <XAxis type="number" domain={[0, 100]} unit="%" tick={{ fontSize: 12, fill: "#6C757D" }} />
+                <YAxis dataKey="name" type="category" tick={{ fontSize: 12, fill: "#212529", fontWeight: 600 }} width={100} />
                 <Tooltip
                   formatter={(value: any) => [`${value}% Contacted`, "Coverage"]}
-                  contentStyle={{ backgroundColor: "#FFFFFF", borderColor: "#DEE2E6", borderRadius: 4, fontSize: 14, padding: "8px 12px" }}
+                  contentStyle={{ backgroundColor: "#FFFFFF", borderColor: "#DEE2E6", borderRadius: 4, fontSize: 13, padding: "8px 12px" }}
                 />
-                <Bar dataKey="progress" fill="#714B67" radius={[0, 3, 3, 0]} barSize={22} />
+                <Bar dataKey="progress" fill="#714B67" radius={[0, 3, 3, 0]} barSize={20} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </Card>
 
         {/* Voter Sentiment Distribution (ERP Pie Chart) */}
-        <Card padding="md">
+        <Card padding="md" className="w-full max-w-full overflow-hidden">
           <CardHeader
             title={t("voterStance")}
             subtitle={t("outcomeSentiment")}
           />
-          <div className="h-44 w-full flex items-center justify-center">
+          <div className="h-44 w-full flex items-center justify-center min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={stats.statusDistribution}
                   cx="50%"
                   cy="50%"
-                  innerRadius={42}
-                  outerRadius={68}
+                  innerRadius={40}
+                  outerRadius={65}
                   paddingAngle={2}
                   dataKey="value"
                 >
@@ -194,12 +194,12 @@ export default function ClientDashboardPage() {
             </ResponsiveContainer>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-[#DEE2E6] grid grid-cols-2 gap-2 text-[13px]">
+          <div className="mt-4 pt-3 border-t border-[#DEE2E6] grid grid-cols-2 gap-2 text-xs sm:text-[13px]">
             {stats.statusDistribution.map((item: any) => (
-              <div key={item.name} className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-[2px]" style={{ backgroundColor: item.color }} />
+              <div key={item.name} className="flex items-center gap-1.5 sm:gap-2 truncate">
+                <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-[2px] flex-shrink-0" style={{ backgroundColor: item.color }} />
                 <span className="text-[#6C757D] truncate">{item.name}:</span>
-                <span className="font-bold text-[#212529]">{item.value}</span>
+                <span className="font-bold text-[#212529] flex-shrink-0">{item.value}</span>
               </div>
             ))}
           </div>
@@ -207,15 +207,15 @@ export default function ClientDashboardPage() {
       </div>
 
       {/* Operational Grids: Today's Follow-ups & Field Activity Stream */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5 w-full">
         {/* Today's Follow-ups */}
-        <div className="bg-white border border-[#DEE2E6] rounded-[4px] overflow-hidden shadow-none">
-          <div className="px-5 py-3.5 border-b border-[#DEE2E6] flex items-center justify-between bg-[#F8F9FA]">
+        <div className="bg-white border border-[#DEE2E6] rounded-[4px] overflow-hidden shadow-none w-full max-w-full">
+          <div className="px-3.5 sm:px-5 py-3 sm:py-3.5 border-b border-[#DEE2E6] flex items-center justify-between bg-[#F8F9FA]">
             <div>
-              <h3 className="text-base font-bold text-[#212529]">
+              <h3 className="text-sm sm:text-base font-bold text-[#212529]">
                 {t("followUpsTitle")}
               </h3>
-              <p className="text-[13px] text-[#6C757D]">{t("followUpsSubtitle")}</p>
+              <p className="text-xs sm:text-[13px] text-[#6C757D]">{t("followUpsSubtitle")}</p>
             </div>
             <Link href="/client/follow-ups">
               <Button variant="secondary" size="sm">
@@ -224,7 +224,7 @@ export default function ClientDashboardPage() {
             </Link>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto w-full max-w-full">
             <table className="odoo-table">
               <thead>
                 <tr>
@@ -240,13 +240,13 @@ export default function ClientDashboardPage() {
                   <tr key={f.id}>
                     <td>
                       <p className="font-bold text-[#212529]">{f.voter_name}</p>
-                      <p className="text-[13px] text-[#6C757D] truncate max-w-[180px]">{f.note}</p>
+                      <p className="text-xs sm:text-[13px] text-[#6C757D] truncate max-w-[180px]">{f.note}</p>
                     </td>
-                    <td className="text-[14px] text-[#495057]">{f.booth_name}</td>
+                    <td className="text-xs sm:text-[14px] text-[#495057]">{f.booth_name}</td>
                     <td>
                       <Badge status={f.priority} size="sm" />
                     </td>
-                    <td className="text-[14px] text-[#6C757D]">
+                    <td className="text-xs sm:text-[14px] text-[#6C757D]">
                       {f.volunteer_name || "Unassigned"}
                     </td>
                     <td className="text-right">
@@ -271,13 +271,13 @@ export default function ClientDashboardPage() {
         </div>
 
         {/* Live Field Activity Feed */}
-        <div className="bg-white border border-[#DEE2E6] rounded-[4px] overflow-hidden shadow-none">
-          <div className="px-5 py-3.5 border-b border-[#DEE2E6] flex items-center justify-between bg-[#F8F9FA]">
+        <div className="bg-white border border-[#DEE2E6] rounded-[4px] overflow-hidden shadow-none w-full max-w-full">
+          <div className="px-3.5 sm:px-5 py-3 sm:py-3.5 border-b border-[#DEE2E6] flex items-center justify-between bg-[#F8F9FA]">
             <div>
-              <h3 className="text-base font-bold text-[#212529]">
+              <h3 className="text-sm sm:text-base font-bold text-[#212529]">
                 {t("fieldWorkTitle")}
               </h3>
-              <p className="text-[13px] text-[#6C757D]">{t("fieldWorkSubtitle")}</p>
+              <p className="text-xs sm:text-[13px] text-[#6C757D]">{t("fieldWorkSubtitle")}</p>
             </div>
             <Link href="/client/field-work">
               <Button variant="secondary" size="sm">
@@ -286,7 +286,7 @@ export default function ClientDashboardPage() {
             </Link>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto w-full max-w-full">
             <table className="odoo-table">
               <thead>
                 <tr>
@@ -302,7 +302,7 @@ export default function ClientDashboardPage() {
                     <td>
                       <p className="font-bold text-[#212529]">{act.voter_name}</p>
                       {act.notes && (
-                        <p className="text-[13px] text-[#6C757D] italic truncate max-w-[180px]">
+                        <p className="text-xs sm:text-[13px] text-[#6C757D] italic truncate max-w-[180px]">
                           "{act.notes}"
                         </p>
                       )}
@@ -310,10 +310,10 @@ export default function ClientDashboardPage() {
                     <td>
                       <Badge status={act.outcome} size="sm" />
                     </td>
-                    <td className="text-[14px] text-[#495057]">
+                    <td className="text-xs sm:text-[14px] text-[#495057]">
                       {act.volunteer_name} <span className="text-[#6C757D] text-xs">({act.booth_name})</span>
                     </td>
-                    <td className="text-right text-[13px] text-[#6C757D] font-mono">
+                    <td className="text-right text-xs sm:text-[13px] text-[#6C757D] font-mono">
                       {formatDateTime(act.created_at)}
                     </td>
                   </tr>

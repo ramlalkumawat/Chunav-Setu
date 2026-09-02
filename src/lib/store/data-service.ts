@@ -19,6 +19,14 @@ import {
   PollingDayVolunteerStats,
   PollingDayDashboardStats,
   PollingVoterStatus,
+  UserRole,
+  CommunicationChannel,
+  CommunicationAction,
+  CallOutcome,
+  CommunicationLog,
+  PollingSlipRecord,
+  CommunicationSummaryStats,
+  FileAsset,
 } from "../types";
 import {
   INITIAL_PROFILES,
@@ -36,6 +44,9 @@ import {
   INITIAL_POLLING_DAYS,
   INITIAL_POLLING_UPDATES,
   INITIAL_POLLING_FOLLOWUPS,
+  INITIAL_COMMUNICATION_LOGS,
+  INITIAL_POLLING_SLIPS,
+  INITIAL_FILE_ASSETS,
 } from "./mock-data";
 
 const STORAGE_KEYS = {
@@ -54,6 +65,9 @@ const STORAGE_KEYS = {
   POLLING_DAYS: "chunav_polling_days",
   POLLING_UPDATES: "chunav_polling_updates",
   POLLING_FOLLOWUPS: "chunav_polling_followups",
+  COMMUNICATION_LOGS: "chunav_communication_logs",
+  POLLING_SLIPS: "chunav_polling_slips",
+  FILE_ASSETS: "chunav_file_assets",
 };
 
 class DataService {
@@ -97,6 +111,9 @@ class DataService {
     localStorage.setItem(STORAGE_KEYS.POLLING_DAYS, JSON.stringify(INITIAL_POLLING_DAYS));
     localStorage.setItem(STORAGE_KEYS.POLLING_UPDATES, JSON.stringify(INITIAL_POLLING_UPDATES));
     localStorage.setItem(STORAGE_KEYS.POLLING_FOLLOWUPS, JSON.stringify(INITIAL_POLLING_FOLLOWUPS));
+    localStorage.setItem(STORAGE_KEYS.COMMUNICATION_LOGS, JSON.stringify(INITIAL_COMMUNICATION_LOGS));
+    localStorage.setItem(STORAGE_KEYS.POLLING_SLIPS, JSON.stringify(INITIAL_POLLING_SLIPS));
+    localStorage.setItem(STORAGE_KEYS.FILE_ASSETS, JSON.stringify(INITIAL_FILE_ASSETS));
   }
 
   // -------------------------------------------------------------------
@@ -243,6 +260,41 @@ class DataService {
     };
     this.setItem(STORAGE_KEYS.CLIENTS, clients);
     return clients[index];
+  }
+
+  public updateCandidatePoster(clientId: string, posterUrl: string, posterAlt?: string): Client | null {
+    const client = this.updateClient(clientId, {
+      poster_url: posterUrl,
+      poster_alt: posterAlt || "Official Candidate Campaign Poster",
+    });
+    if (client) {
+      this.logAction(
+        { name: "Super Admin" },
+        "POSTER_UPDATED",
+        "CandidateBranding",
+        clientId,
+        { poster_url: posterUrl },
+        clientId
+      );
+    }
+    return client;
+  }
+
+  public resetCandidateCredentials(clientId: string, newPassword?: string): { success: boolean; tempPassword: string } {
+    const client = this.getClientById(clientId);
+    const generatedPassword = newPassword || `Setu@${Math.floor(1000 + Math.random() * 9000)}`;
+    if (client) {
+      this.updateClient(clientId, { password: generatedPassword });
+      this.logAction(
+        { name: "Super Admin" },
+        "CREDENTIALS_RESET",
+        "CandidateAccount",
+        clientId,
+        { candidate: client.candidate_name },
+        clientId
+      );
+    }
+    return { success: !!client, tempPassword: generatedPassword };
   }
 
   // -------------------------------------------------------------------
@@ -523,42 +575,124 @@ class DataService {
     campaignId: string,
     votersList: Omit<Voter, "id" | "created_at" | "client_id" | "campaign_id">[]
   ): { inserted: number; skipped: number } {
+    return this.batchImportVoters(clientId, votersList, { campaignId });
+  }
+
+  public batchImportVoters(
+    clientId: string,
+    votersList: Partial<Voter>[],
+    options?: { campaignId?: string; defaultBoothId?: string; defaultAreaId?: string }
+  ): {
+    total: number;
+    inserted: number;
+    duplicates: number;
+    invalid: number;
+    skipped: number;
+    records: Voter[];
+  } {
     const existingVoters = this.getItem<Voter[]>(STORAGE_KEYS.VOTERS, INITIAL_VOTERS);
     const existingCardSet = new Set(
       existingVoters.filter((v) => v.client_id === clientId).map((v) => v.voter_id_card.trim().toUpperCase())
     );
 
+    const client = this.getClientById(clientId);
+    const campaignId = options?.campaignId || client?.campaign_name || "camp-1";
+    const booths = this.getBooths(clientId);
+    const areas = this.getAreas(clientId);
+
+    let total = votersList.length;
     let inserted = 0;
+    let duplicates = 0;
+    let invalid = 0;
     let skipped = 0;
 
     const newVotersToAdd: Voter[] = [];
 
     votersList.forEach((v) => {
       const card = v.voter_id_card ? v.voter_id_card.trim().toUpperCase() : "";
-      if (!card || existingCardSet.has(card)) {
+      const name = v.name ? v.name.trim() : "";
+
+      if (!card || !name) {
+        invalid++;
+        skipped++;
+        return;
+      }
+
+      if (existingCardSet.has(card)) {
+        duplicates++;
         skipped++;
         return;
       }
 
       existingCardSet.add(card);
-      newVotersToAdd.push({
-        ...v,
-        id: `voter-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+
+      const boothId = v.booth_id || options?.defaultBoothId || (booths[0] ? booths[0].id : "booth-101");
+      const areaId = v.area_id || options?.defaultAreaId || (areas[0] ? areas[0].id : "area-1");
+      const matchedBooth = booths.find((b) => b.id === boothId);
+      const matchedArea = areas.find((a) => a.id === areaId);
+
+      const createdVoter: Voter = {
+        id: `voter-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
         client_id: clientId,
         campaign_id: campaignId,
         voter_id_card: card,
-        contact_status: v.contact_status || "uncontacted",
-        follow_up_status: v.follow_up_status || "none",
+        name: name,
+        mobile: v.mobile?.trim(),
+        age: typeof v.age === "number" ? v.age : v.age ? parseInt(String(v.age), 10) || undefined : undefined,
+        gender: v.gender || "Unknown",
+        address: v.address?.trim() || "",
+        booth_id: boothId,
+        booth_number: matchedBooth?.booth_number || v.booth_number || "Booth 101",
+        booth_name: matchedBooth?.booth_name || v.booth_name || "Govt School",
+        area_id: areaId,
+        area_name: matchedArea?.name || v.area_name || "Main Area",
+        contact_status: (v.contact_status as any) || "uncontacted",
+        follow_up_status: (v.follow_up_status as any) || "none",
+        notes: v.notes || "",
         created_at: new Date().toISOString(),
-      });
+      };
+
+      newVotersToAdd.push(createdVoter);
       inserted++;
     });
 
     if (newVotersToAdd.length > 0) {
       this.setItem(STORAGE_KEYS.VOTERS, [...newVotersToAdd, ...existingVoters]);
+      this.logAction(
+        { name: "Admin/Import" },
+        "VOTER_LIST_IMPORTED",
+        "VoterRoll",
+        clientId,
+        { total, inserted, duplicates, invalid },
+        clientId
+      );
     }
 
-    return { inserted, skipped };
+    return {
+      total,
+      inserted,
+      duplicates,
+      invalid,
+      skipped,
+      records: newVotersToAdd,
+    };
+  }
+
+  public getVotersForVolunteer(
+    clientId: string,
+    volunteerId: string,
+    filters?: {
+      search?: string;
+      contactStatus?: string;
+      page?: number;
+      pageSize?: number;
+    }
+  ): PaginatedResult<Voter> {
+    const volunteer = this.getVolunteerById(clientId, volunteerId);
+    return this.getVoters(clientId, {
+      ...filters,
+      boothId: volunteer?.assigned_booth_id || "booth-101",
+    });
   }
 
   public updateVoter(clientId: string, id: string, updates: Partial<Voter>): Voter | null {
@@ -792,17 +926,23 @@ class DataService {
     const voters = this.getItem<Voter[]>(STORAGE_KEYS.VOTERS, INITIAL_VOTERS);
     const volunteers = this.getItem<Volunteer[]>(STORAGE_KEYS.VOLUNTEERS, INITIAL_VOLUNTEERS);
     const campaigns = this.getItem<Campaign[]>(STORAGE_KEYS.CAMPAIGNS, INITIAL_CAMPAIGNS);
+    const pollingDays = this.getItem<PollingDay[]>(STORAGE_KEYS.POLLING_DAYS, INITIAL_POLLING_DAYS);
+    const pollingUpdates = this.getItem<PollingDayUpdate[]>(STORAGE_KEYS.POLLING_UPDATES, INITIAL_POLLING_UPDATES);
     const activities = this.getItem<FieldActivity[]>(STORAGE_KEYS.FIELD_ACTIVITIES, INITIAL_FIELD_ACTIVITIES);
 
     return {
       totalClients: clients.length,
       activeClients: clients.filter((c) => c.status === "active").length,
+      totalCampaigns: campaigns.length,
       activeCampaigns: campaigns.filter((c) => c.status === "active").length,
       totalVolunteers: volunteers.length,
       totalVoters: voters.length,
       totalActivities: activities.length,
+      activePollingCampaigns: pollingDays.filter((p) => p.status === "active").length || 1,
+      totalPollingUpdates: pollingUpdates.length,
       clientsList: clients,
-      recentLogs: this.getAuditLogs().slice(0, 8),
+      recentLogs: this.getAuditLogs().slice(0, 10),
+      recentPollingUpdates: pollingUpdates.slice(0, 8),
     };
   }
 
@@ -898,25 +1038,31 @@ class DataService {
     );
 
     const totalVoters = voters.length || pollingDay?.total_target_voters || 12450;
-    const votingReported = updates.filter((u) => u.status === "VOTING_REPORTED").length;
-    const followUpRequired = updates.filter((u) => u.status === "FOLLOW_UP_REQUIRED").length;
+    
+    // Normalize status: treat 'VOTE_CAST' and legacy 'VOTING_REPORTED' as vote cast
+    const voteCastCount = updates.filter((u) => u.status === "VOTE_CAST" || u.status === "VOTING_REPORTED").length;
+    const notReportedCount = updates.filter((u) => u.status === "NOT_REPORTED").length;
+    const pendingUpdates = updates.filter((u) => u.status === "PENDING").length;
+    
+    // Status reported in total
     const statusReported = updates.length;
-    const pendingVoters = Math.max(0, totalVoters - statusReported);
+    // Unchecked / Pending voters = total minus vote cast
+    const pendingVoters = Math.max(0, totalVoters - voteCastCount - notReportedCount);
     const followUpsCount = followUps.filter((f) => f.status === "pending").length;
-    const turnoutPercentage = totalVoters > 0 ? Math.round((statusReported / totalVoters) * 100) : 0;
+    const turnoutPercentage = totalVoters > 0 ? Math.round((voteCastCount / totalVoters) * 100) : 0;
 
     // Hourly Breakdown (8 AM - 5 PM)
     const hours = [
-      { hour: "08", label: "8 AM", count: 420 },
-      { hour: "09", label: "9 AM", count: 680 },
-      { hour: "10", label: "10 AM", count: 950 },
-      { hour: "11", label: "11 AM", count: 1240 },
-      { hour: "12", label: "12 PM", count: 860 },
-      { hour: "13", label: "1 PM", count: 540 },
-      { hour: "14", label: "2 PM", count: 720 },
-      { hour: "15", label: "3 PM", count: 890 },
-      { hour: "16", label: "4 PM", count: 1050 },
-      { hour: "17", label: "5 PM", count: 600 },
+      { hour: "08", label: "8 AM", count: Math.round(voteCastCount * 0.08) || 35 },
+      { hour: "09", label: "9 AM", count: Math.round(voteCastCount * 0.12) || 62 },
+      { hour: "10", label: "10 AM", count: Math.round(voteCastCount * 0.16) || 85 },
+      { hour: "11", label: "11 AM", count: Math.round(voteCastCount * 0.18) || 110 },
+      { hour: "12", label: "12 PM", count: Math.round(voteCastCount * 0.14) || 75 },
+      { hour: "13", label: "1 PM", count: Math.round(voteCastCount * 0.08) || 45 },
+      { hour: "14", label: "2 PM", count: Math.round(voteCastCount * 0.07) || 40 },
+      { hour: "15", label: "3 PM", count: Math.round(voteCastCount * 0.06) || 38 },
+      { hour: "16", label: "4 PM", count: Math.round(voteCastCount * 0.07) || 42 },
+      { hour: "17", label: "5 PM", count: Math.round(voteCastCount * 0.04) || 20 },
     ];
 
     const boothStats = this.getPollingDayBoothStats(clientId);
@@ -925,13 +1071,15 @@ class DataService {
     return {
       pollingDay,
       totalVoters,
+      voteCastCount,
       statusReported,
-      votingActivityReported: votingReported,
+      votingActivityReported: voteCastCount,
       pendingVoters,
+      notReportedCount,
       followUpsCount,
       turnoutPercentage,
       hourlyActivity: hours,
-      recentUpdates: updates.slice(0, 10),
+      recentUpdates: updates.slice(0, 15),
       boothStats,
       volunteerStats,
     };
@@ -957,9 +1105,10 @@ class DataService {
 
       const total = boothVoters.length || b.voter_count || 850;
       const reported = boothUpdates.length;
-      const votingReported = boothUpdates.filter((u) => u.status === "VOTING_REPORTED").length;
-      const pending = Math.max(0, total - reported);
-      const progress = total > 0 ? Math.round((reported / total) * 100) : 0;
+      const voteCast = boothUpdates.filter((u) => u.status === "VOTE_CAST" || u.status === "VOTING_REPORTED").length;
+      const notReported = boothUpdates.filter((u) => u.status === "NOT_REPORTED").length;
+      const pending = Math.max(0, total - voteCast - notReported);
+      const progress = total > 0 ? Math.round((voteCast / total) * 100) : 0;
 
       return {
         booth_id: b.id,
@@ -968,8 +1117,10 @@ class DataService {
         area_name: b.area_name || "General Ward",
         total_voters: total,
         reported_count: reported,
-        voting_reported_count: votingReported,
+        vote_cast_count: voteCast,
+        voting_reported_count: voteCast,
         pending_count: pending,
+        not_reported_count: notReported,
         follow_up_count: boothFollowUps.length,
         progress_percentage: progress,
         assigned_volunteers_count: b.assigned_volunteers_count || 1,
@@ -1008,6 +1159,8 @@ class DataService {
 
     return volunteers.map((v) => {
       const volUpdates = updates.filter((u) => u.volunteer_id === v.id || u.volunteer_name === v.name);
+      const voteCastUpdates = volUpdates.filter((u) => u.status === "VOTE_CAST" || u.status === "VOTING_REPORTED").length;
+      const pendingUpdates = volUpdates.filter((u) => u.status === "PENDING").length;
       const volFollowUps = followUps.filter((f) => (f.volunteer_id === v.id || f.volunteer_name === v.name) && f.status === "pending");
       const lastUpdate = volUpdates.length > 0 ? volUpdates[0].created_at : undefined;
 
@@ -1019,6 +1172,8 @@ class DataService {
         assigned_booth_name: v.assigned_booth_name || "Booth 101",
         assigned_area_name: v.assigned_area_name || "Shastri Nagar",
         updates_today: volUpdates.length,
+        vote_cast_updates: voteCastUpdates,
+        pending_updates: pendingUpdates,
         last_update_time: lastUpdate,
         pending_followups: volFollowUps.length,
         is_active: v.status === "active",
@@ -1046,7 +1201,7 @@ class DataService {
 
     let list = voters;
 
-    // If volunteer context, scope to assigned booth
+    // Strict Volunteer Scoping: If volunteer context, ONLY show voters for their assigned booth
     if (volunteer && volunteer.assigned_booth_id) {
       list = list.filter((v) => v.booth_id === volunteer.assigned_booth_id);
     } else if (filters?.boothId && filters.boothId !== "all") {
@@ -1060,14 +1215,19 @@ class DataService {
     let enriched = list.map((v) => {
       const u = updateMap.get(v.id);
       const booth = booths.find((b) => b.id === v.booth_id);
+      let effectiveStatus = (u?.status || "PENDING") as PollingVoterStatus;
+      if (effectiveStatus === "VOTING_REPORTED") effectiveStatus = "VOTE_CAST";
+
       return {
         ...v,
         booth_number: booth?.booth_number || v.booth_number || "Booth 101",
         booth_name: booth?.booth_name || v.booth_name || "Primary School",
-        area_name: booth?.area_name || v.area_name || "Shastri Nagar",
-        polling_status: (u?.status || "PENDING") as PollingVoterStatus,
+        area_name: booth?.area_name || v.area_name || "General Area",
+        polling_status: effectiveStatus,
         last_polling_update_time: u?.created_at,
         last_polling_note: u?.note,
+        updated_by: u?.updated_by,
+        updated_by_role: u?.updated_by_role,
       };
     });
 
@@ -1079,7 +1239,8 @@ class DataService {
           v.name.toLowerCase().includes(q) ||
           v.voter_id_card.toLowerCase().includes(q) ||
           (v.mobile && v.mobile.includes(q)) ||
-          (v.address && v.address.toLowerCase().includes(q))
+          (v.address && v.address.toLowerCase().includes(q)) ||
+          (v.booth_number && v.booth_number.toLowerCase().includes(q))
       );
     }
 
@@ -1109,7 +1270,8 @@ class DataService {
     voterId: string,
     status: PollingVoterStatus,
     volunteerId?: string,
-    note?: string
+    note?: string,
+    updaterRole: string = "volunteer"
   ): PollingDayUpdate {
     const updates = this.getItem<PollingDayUpdate[]>(STORAGE_KEYS.POLLING_UPDATES, INITIAL_POLLING_UPDATES);
     const voters = this.getItem<Voter[]>(STORAGE_KEYS.VOTERS, INITIAL_VOTERS);
@@ -1120,12 +1282,13 @@ class DataService {
     const booth = booths.find((b) => b.id === (voter?.booth_id || volunteer?.assigned_booth_id));
 
     const existingIndex = updates.findIndex((u) => u.voter_id === voterId && u.client_id === clientId);
+    const previousStatus = existingIndex !== -1 ? updates[existingIndex].status : "PENDING";
     const now = new Date().toISOString();
 
     const record: PollingDayUpdate = {
       id: existingIndex !== -1 ? updates[existingIndex].id : `pdu-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       client_id: clientId,
-      campaign_id: voter?.campaign_id || "campaign-1",
+      campaign_id: voter?.campaign_id || "camp-1",
       polling_day_id: `pd-${clientId}`,
       voter_id: voterId,
       voter_name: voter?.name || "Voter",
@@ -1135,10 +1298,12 @@ class DataService {
       booth_name: booth?.booth_name || "Govt School",
       area_name: booth?.area_name || "General Ward",
       volunteer_id: volunteer?.id,
-      volunteer_name: volunteer?.name || "Field Volunteer",
+      volunteer_name: volunteer?.name || "Candidate/Staff",
       status,
+      previous_status: previousStatus,
       note,
-      updated_by: volunteer?.name || "Admin",
+      updated_by: volunteer?.name || "Candidate/Admin",
+      updated_by_role: updaterRole,
       created_at: now,
       updated_at: now,
     };
@@ -1150,7 +1315,43 @@ class DataService {
     }
 
     this.setItem(STORAGE_KEYS.POLLING_UPDATES, updates);
+
+    // Audit log
+    this.logAction(
+      { name: volunteer?.name || "Candidate/Admin" },
+      "POLLING_STATUS_UPDATED",
+      "PollingDayVoter",
+      voterId,
+      { voter_name: voter?.name, card: voter?.voter_id_card, status, previousStatus },
+      clientId
+    );
+
     return record;
+  }
+
+  public undoPollingVoterStatus(
+    clientId: string,
+    voterId: string,
+    volunteerId?: string
+  ): boolean {
+    const updates = this.getItem<PollingDayUpdate[]>(STORAGE_KEYS.POLLING_UPDATES, INITIAL_POLLING_UPDATES);
+    const index = updates.findIndex((u) => u.voter_id === voterId && u.client_id === clientId);
+    if (index === -1) return false;
+
+    const previousStatus = updates[index].previous_status || "PENDING";
+    updates[index].status = previousStatus;
+    updates[index].updated_at = new Date().toISOString();
+    this.setItem(STORAGE_KEYS.POLLING_UPDATES, updates);
+
+    this.logAction(
+      { name: volunteerId || "User" },
+      "POLLING_STATUS_UNDONE",
+      "PollingDayVoter",
+      voterId,
+      { status: previousStatus },
+      clientId
+    );
+    return true;
   }
 
   public createPollingFollowUp(
@@ -1167,7 +1368,7 @@ class DataService {
     followUps.unshift(newFollowUp);
     this.setItem(STORAGE_KEYS.POLLING_FOLLOWUPS, followUps);
 
-    // Also update the voter status to FOLLOW_UP_REQUIRED
+    // Also update the voter status
     this.updatePollingVoterStatus(
       clientId,
       data.voter_id,
@@ -1203,7 +1404,628 @@ class DataService {
     const updates = this.getItem<PollingDayUpdate[]>(STORAGE_KEYS.POLLING_UPDATES, INITIAL_POLLING_UPDATES);
     return updates.filter((u) => u.client_id === clientId).slice(0, limit);
   }
+
+  // ===================================================================
+  // 15. COMMUNICATION (संचार) & POLLING SERVICES MODULE
+  // ===================================================================
+
+  public getCommunicationLogs(
+    clientId: string,
+    options?: {
+      voterId?: string;
+      channel?: CommunicationChannel | "ALL";
+      action?: CommunicationAction | "ALL";
+      status?: string;
+      volunteerId?: string;
+      search?: string;
+      page?: number;
+      pageSize?: number;
+    }
+  ): PaginatedResult<CommunicationLog> {
+    const logs = this.getItem<CommunicationLog[]>(STORAGE_KEYS.COMMUNICATION_LOGS, INITIAL_COMMUNICATION_LOGS);
+    let filtered = logs.filter((l) => l.client_id === clientId);
+
+    if (options?.voterId) {
+      filtered = filtered.filter((l) => l.voter_id === options.voterId);
+    }
+    if (options?.channel && options.channel !== "ALL") {
+      filtered = filtered.filter((l) => l.channel === options.channel);
+    }
+    if (options?.action && options.action !== "ALL") {
+      filtered = filtered.filter((l) => l.action === options.action);
+    }
+    if (options?.status && options.status !== "ALL") {
+      filtered = filtered.filter((l) => l.status === options.status);
+    }
+    if (options?.volunteerId) {
+      // Scoped volunteer logs
+      const volunteer = this.getVolunteerById(clientId, options.volunteerId);
+      if (volunteer && volunteer.assigned_booth_id) {
+        filtered = filtered.filter(
+          (l) => l.user_id === volunteer.user_id || l.booth_id === volunteer.assigned_booth_id
+        );
+      }
+    }
+    if (options?.search) {
+      const q = options.search.toLowerCase().trim();
+      filtered = filtered.filter(
+        (l) =>
+          l.voter_name.toLowerCase().includes(q) ||
+          l.voter_card.toLowerCase().includes(q) ||
+          (l.voter_mobile && l.voter_mobile.includes(q)) ||
+          l.actor_name.toLowerCase().includes(q) ||
+          (l.note && l.note.toLowerCase().includes(q))
+      );
+    }
+
+    // Sort newest first
+    filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    const page = options?.page || 1;
+    const pageSize = options?.pageSize || 20;
+    const total = filtered.length;
+    const totalPages = Math.ceil(total / pageSize) || 1;
+    const startIndex = (page - 1) * pageSize;
+    const data = filtered.slice(startIndex, startIndex + pageSize);
+
+    return {
+      data,
+      total,
+      page,
+      pageSize,
+      totalPages,
+    };
+  }
+
+  public logCommunication(
+    clientId: string,
+    data: Omit<CommunicationLog, "id" | "created_at">
+  ): CommunicationLog {
+    const logs = this.getItem<CommunicationLog[]>(STORAGE_KEYS.COMMUNICATION_LOGS, INITIAL_COMMUNICATION_LOGS);
+    const newLog: CommunicationLog = {
+      ...data,
+      id: `comm-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      created_at: new Date().toISOString(),
+    };
+    logs.unshift(newLog);
+    this.setItem(STORAGE_KEYS.COMMUNICATION_LOGS, logs);
+
+    this.logAction(
+      { id: data.user_id, name: data.actor_name },
+      data.action,
+      "Communication",
+      data.voter_id,
+      { channel: data.channel, status: data.status, voter: data.voter_name },
+      clientId
+    );
+
+    return newLog;
+  }
+
+  public recordCallResult(
+    clientId: string,
+    data: {
+      voterId: string;
+      userId?: string;
+      userRole: UserRole;
+      actorName: string;
+      callStatus: CallOutcome;
+      note?: string;
+      scheduleFollowUp?: boolean;
+      followUpDate?: string;
+    }
+  ): CommunicationLog | null {
+    const voter = this.getVoterById(clientId, data.voterId);
+    if (!voter) return null;
+
+    const action: CommunicationAction =
+      data.callStatus === "Connected" ? "CALL_CONNECTED" : "CALL_ATTEMPTED";
+
+    // 1. Log communication
+    const log = this.logCommunication(clientId, {
+      client_id: clientId,
+      campaign_id: voter.campaign_id,
+      voter_id: voter.id,
+      voter_name: voter.name,
+      voter_card: voter.voter_id_card,
+      voter_mobile: voter.mobile,
+      booth_id: voter.booth_id,
+      booth_number: voter.booth_number,
+      booth_name: voter.booth_name,
+      area_name: voter.area_name,
+      user_id: data.userId,
+      user_role: data.userRole,
+      actor_name: data.actorName,
+      channel: "CALL",
+      action,
+      status: data.callStatus,
+      note: data.note,
+    });
+
+    // 2. Update voter contact & telemetry
+    const nowIso = new Date().toISOString();
+    const voterUpdates: Partial<Voter> = {
+      last_called_at: nowIso,
+      last_call_status: data.callStatus,
+      last_contacted_by: data.actorName,
+      last_contacted_at: nowIso,
+    };
+
+    if (data.callStatus === "Connected" && voter.contact_status === "uncontacted") {
+      voterUpdates.contact_status = "contacted";
+    }
+
+    if (data.callStatus === "Follow-up Required" || data.scheduleFollowUp) {
+      voterUpdates.follow_up_status = "pending";
+    }
+
+    this.updateVoter(clientId, voter.id, voterUpdates);
+
+    return log;
+  }
+
+  public recordWhatsAppOpen(
+    clientId: string,
+    data: {
+      voterId: string;
+      userId?: string;
+      userRole: UserRole;
+      actorName: string;
+      messageText?: string;
+    }
+  ): CommunicationLog | null {
+    const voter = this.getVoterById(clientId, data.voterId);
+    if (!voter) return null;
+
+    const log = this.logCommunication(clientId, {
+      client_id: clientId,
+      campaign_id: voter.campaign_id,
+      voter_id: voter.id,
+      voter_name: voter.name,
+      voter_card: voter.voter_id_card,
+      voter_mobile: voter.mobile,
+      booth_id: voter.booth_id,
+      booth_number: voter.booth_number,
+      booth_name: voter.booth_name,
+      area_name: voter.area_name,
+      user_id: data.userId,
+      user_role: data.userRole,
+      actor_name: data.actorName,
+      channel: "WHATSAPP",
+      action: "WHATSAPP_OPENED",
+      status: "Opened",
+      note: data.messageText || "Informational message dispatched via WhatsApp.",
+    });
+
+    const nowIso = new Date().toISOString();
+    this.updateVoter(clientId, voter.id, {
+      last_whatsapp_at: nowIso,
+      last_contacted_by: data.actorName,
+      last_contacted_at: nowIso,
+    });
+
+    return log;
+  }
+
+  public recordPollingSlipGenerated(
+    clientId: string,
+    data: {
+      voterId: string;
+      userId?: string;
+      userRole: UserRole;
+      actorName: string;
+      sharedViaWhatsApp?: boolean;
+    }
+  ): { log: CommunicationLog; slip: PollingSlipRecord } | null {
+    const voter = this.getVoterById(clientId, data.voterId);
+    if (!voter) return null;
+
+    const client = this.getClientById(clientId);
+    const electionDate = client?.election_date || "12 December 2026";
+    const slipNumber = `PS-${voter.booth_number?.replace(/\D/g, "") || "00"}-${voter.voter_id_card.slice(-6)}`;
+
+    // 1. Store Polling Slip Record
+    const slips = this.getItem<PollingSlipRecord[]>(STORAGE_KEYS.POLLING_SLIPS, INITIAL_POLLING_SLIPS);
+    const newSlip: PollingSlipRecord = {
+      id: `slip-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      client_id: clientId,
+      campaign_id: voter.campaign_id,
+      voter_id: voter.id,
+      voter_name: voter.name,
+      voter_card: voter.voter_id_card,
+      booth_number: voter.booth_number || "Booth 101",
+      booth_name: voter.booth_name || "Govt Inter College",
+      polling_date: electionDate,
+      polling_time: "07:00 AM - 06:00 PM",
+      slip_number: slipNumber,
+      created_by: data.actorName,
+      created_at: new Date().toISOString(),
+      shared_via_whatsapp: !!data.sharedViaWhatsApp,
+    };
+    slips.unshift(newSlip);
+    this.setItem(STORAGE_KEYS.POLLING_SLIPS, slips);
+
+    // 2. Communication Log
+    const action: CommunicationAction = data.sharedViaWhatsApp
+      ? "POLLING_SLIP_SHARED"
+      : "POLLING_SLIP_GENERATED";
+    const status = data.sharedViaWhatsApp ? "Slip Shared" : "Slip Generated";
+
+    const log = this.logCommunication(clientId, {
+      client_id: clientId,
+      campaign_id: voter.campaign_id,
+      voter_id: voter.id,
+      voter_name: voter.name,
+      voter_card: voter.voter_id_card,
+      voter_mobile: voter.mobile,
+      booth_id: voter.booth_id,
+      booth_number: voter.booth_number,
+      booth_name: voter.booth_name,
+      area_name: voter.area_name,
+      user_id: data.userId,
+      user_role: data.userRole,
+      actor_name: data.actorName,
+      channel: "POLLING_SLIP",
+      action,
+      status,
+      note: data.sharedViaWhatsApp
+        ? `Slip ${slipNumber} shared on WhatsApp`
+        : `Slip ${slipNumber} generated and ready for print/download`,
+    });
+
+    const nowIso = new Date().toISOString();
+    this.updateVoter(clientId, voter.id, {
+      last_slip_generated_at: nowIso,
+    });
+
+    return { log, slip: newSlip };
+  }
+
+  public getCommunicationSummary(
+    clientId: string,
+    volunteerId?: string
+  ): CommunicationSummaryStats {
+    const logs = this.getItem<CommunicationLog[]>(STORAGE_KEYS.COMMUNICATION_LOGS, INITIAL_COMMUNICATION_LOGS)
+      .filter((l) => l.client_id === clientId);
+    const voters = this.getVoters(clientId, { pageSize: 5000 }).data;
+
+    let scopedLogs = logs;
+    let scopedVoters = voters;
+
+    if (volunteerId) {
+      const vol = this.getVolunteerById(clientId, volunteerId);
+      if (vol && vol.assigned_booth_id) {
+        scopedVoters = voters.filter((v) => v.booth_id === vol.assigned_booth_id);
+        scopedLogs = logs.filter(
+          (l) => l.user_id === vol.user_id || l.booth_id === vol.assigned_booth_id
+        );
+      }
+    }
+
+    const todayStr = new Date().toISOString().split("T")[0];
+    const todayLogs = scopedLogs.filter((l) => l.created_at.startsWith(todayStr) || true); // Include realistic demo activity
+
+    const todaysCalls = todayLogs.filter((l) => l.channel === "CALL").length;
+    const connectedCalls = todayLogs.filter(
+      (l) => l.channel === "CALL" && l.status === "Connected"
+    ).length;
+    const whatsAppActivity = todayLogs.filter((l) => l.channel === "WHATSAPP").length;
+    const pollingSlipsGenerated = todayLogs.filter((l) => l.channel === "POLLING_SLIP").length;
+
+    const followUps = this.getFollowUps(clientId).filter(
+      (f) => f.status === "pending" && (!volunteerId || f.volunteer_id === volunteerId)
+    );
+
+    const contactablePhoneVoters = scopedVoters.filter((v) => !!v.mobile && !v.opt_out).length;
+    const optedOutCount = scopedVoters.filter((v) => v.opt_out).length;
+
+    return {
+      todaysCalls,
+      connectedCalls,
+      whatsAppActivity,
+      pollingSlipsGenerated,
+      pendingFollowUps: followUps.length,
+      totalVoters: scopedVoters.length,
+      contactablePhoneVoters,
+      optedOutCount,
+      channelBreakdown: {
+        calls: scopedLogs.filter((l) => l.channel === "CALL").length,
+        whatsapp: scopedLogs.filter((l) => l.channel === "WHATSAPP").length,
+        slips: scopedLogs.filter((l) => l.channel === "POLLING_SLIP").length,
+      },
+      recentLogs: scopedLogs.slice(0, 10),
+    };
+  }
+
+  public getCallingList(
+    clientId: string,
+    volunteerId?: string,
+    options?: {
+      search?: string;
+      boothId?: string;
+      callStatus?: string;
+      page?: number;
+      pageSize?: number;
+    }
+  ): PaginatedResult<Voter> {
+    const voters = this.getItem<Voter[]>(STORAGE_KEYS.VOTERS, INITIAL_VOTERS)
+      .filter((v) => v.client_id === clientId);
+
+    let filtered = voters;
+
+    // Scope for volunteer if present
+    if (volunteerId) {
+      const vol = this.getVolunteerById(clientId, volunteerId);
+      if (vol && vol.assigned_booth_id) {
+        filtered = filtered.filter((v) => v.booth_id === vol.assigned_booth_id);
+      }
+    }
+
+    if (options?.boothId && options.boothId !== "all") {
+      filtered = filtered.filter((v) => v.booth_id === options.boothId);
+    }
+
+    if (options?.callStatus && options.callStatus !== "all") {
+      if (options.callStatus === "Not Called") {
+        filtered = filtered.filter((v) => !v.last_called_at);
+      } else {
+        filtered = filtered.filter((v) => v.last_call_status === options.callStatus);
+      }
+    }
+
+    if (options?.search) {
+      const q = options.search.toLowerCase().trim();
+      filtered = filtered.filter(
+        (v) =>
+          v.name.toLowerCase().includes(q) ||
+          v.voter_id_card.toLowerCase().includes(q) ||
+          (v.mobile && v.mobile.includes(q)) ||
+          (v.booth_number && v.booth_number.toLowerCase().includes(q)) ||
+          (v.area_name && v.area_name.toLowerCase().includes(q))
+      );
+    }
+
+    const page = options?.page || 1;
+    const pageSize = options?.pageSize || 15;
+    const total = filtered.length;
+    const totalPages = Math.ceil(total / pageSize) || 1;
+    const startIndex = (page - 1) * pageSize;
+    const data = filtered.slice(startIndex, startIndex + pageSize);
+
+    return {
+      data,
+      total,
+      page,
+      pageSize,
+      totalPages,
+    };
+  }
+
+  public getWhatsAppList(
+    clientId: string,
+    volunteerId?: string,
+    options?: {
+      search?: string;
+      boothId?: string;
+      page?: number;
+      pageSize?: number;
+    }
+  ): PaginatedResult<Voter> {
+    return this.getCallingList(clientId, volunteerId, options);
+  }
+
+  public getPollingSlipVoters(
+    clientId: string,
+    volunteerId?: string,
+    options?: {
+      search?: string;
+      boothId?: string;
+      page?: number;
+      pageSize?: number;
+    }
+  ): PaginatedResult<Voter> {
+    return this.getCallingList(clientId, volunteerId, options);
+  }
+
+  public updateVoterCommunicationPreferences(
+    clientId: string,
+    voterId: string,
+    prefs: {
+      whatsapp_allowed?: boolean;
+      calling_allowed?: boolean;
+      opt_out?: boolean;
+    }
+  ): Voter | null {
+    const voter = this.updateVoter(clientId, voterId, prefs);
+    if (voter) {
+      this.logAction(
+        { name: "System" },
+        "COMMUNICATION_PREFERENCES_UPDATED",
+        "Voter",
+        voterId,
+        prefs,
+        clientId
+      );
+    }
+    return voter;
+  }
+
+  public batchGeneratePollingSlips(
+    clientId: string,
+    voterIds: string[],
+    actor: { userId?: string; userRole: UserRole; actorName: string }
+  ): PollingSlipRecord[] {
+    const generated: PollingSlipRecord[] = [];
+    voterIds.forEach((voterId) => {
+      const res = this.recordPollingSlipGenerated(clientId, {
+        voterId,
+        userId: actor.userId,
+        userRole: actor.userRole,
+        actorName: actor.actorName,
+        sharedViaWhatsApp: false,
+      });
+      if (res?.slip) {
+        generated.push(res.slip);
+      }
+    });
+    return generated;
+  }
+
+  // -------------------------------------------------------------------
+  // FILE ASSETS & SUPABASE STORAGE INTEGRATION
+  // -------------------------------------------------------------------
+  public getFileAssets(
+    clientId: string,
+    filters?: { module?: string; entityType?: string; status?: string }
+  ): FileAsset[] {
+    const assets = this.getItem<FileAsset[]>(STORAGE_KEYS.FILE_ASSETS, INITIAL_FILE_ASSETS);
+    return assets.filter((a) => {
+      if (a.client_id !== clientId) return false;
+      if (filters?.module && a.module !== filters.module) return false;
+      if (filters?.entityType && a.entity_type !== filters.entityType) return false;
+      if (filters?.status && a.status !== filters.status) return false;
+      return true;
+    });
+  }
+
+  public getFileAssetById(clientId: string, id: string): FileAsset | null {
+    const assets = this.getItem<FileAsset[]>(STORAGE_KEYS.FILE_ASSETS, INITIAL_FILE_ASSETS);
+    return assets.find((a) => a.id === id && a.client_id === clientId) || null;
+  }
+
+  public createFileAsset(
+    clientId: string,
+    asset: Omit<FileAsset, "id" | "client_id" | "created_at" | "updated_at"> & { client_id?: string }
+  ): FileAsset {
+    const assets = this.getItem<FileAsset[]>(STORAGE_KEYS.FILE_ASSETS, INITIAL_FILE_ASSETS);
+    const newAsset: FileAsset = {
+      ...asset,
+      id: `asset-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      client_id: clientId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    assets.unshift(newAsset);
+    this.setItem(STORAGE_KEYS.FILE_ASSETS, assets);
+
+    this.logAction(
+      { id: asset.uploaded_by, name: "Storage Service" },
+      "FILE_ASSET_CREATED",
+      "FileAsset",
+      newAsset.id,
+      {
+        fileName: newAsset.file_name,
+        module: newAsset.module,
+        storagePath: newAsset.storage_path,
+        fileSize: newAsset.file_size,
+      },
+      clientId
+    );
+
+    return newAsset;
+  }
+
+  public updateFileAsset(
+    clientId: string,
+    id: string,
+    updates: Partial<FileAsset>
+  ): FileAsset | null {
+    const assets = this.getItem<FileAsset[]>(STORAGE_KEYS.FILE_ASSETS, INITIAL_FILE_ASSETS);
+    const index = assets.findIndex((a) => a.id === id && a.client_id === clientId);
+    if (index === -1) return null;
+
+    assets[index] = {
+      ...assets[index],
+      ...updates,
+      updated_at: new Date().toISOString(),
+    };
+    this.setItem(STORAGE_KEYS.FILE_ASSETS, assets);
+    return assets[index];
+  }
+
+  public deleteFileAsset(clientId: string, id: string): boolean {
+    const assets = this.getItem<FileAsset[]>(STORAGE_KEYS.FILE_ASSETS, INITIAL_FILE_ASSETS);
+    const asset = assets.find((a) => a.id === id && a.client_id === clientId);
+    if (!asset) return false;
+
+    // Soft delete / mark inactive
+    asset.status = "deleted";
+    asset.updated_at = new Date().toISOString();
+    this.setItem(STORAGE_KEYS.FILE_ASSETS, assets);
+
+    this.logAction(
+      { name: "Storage Service" },
+      "FILE_ASSET_DELETED",
+      "FileAsset",
+      id,
+      { fileName: asset.file_name, storagePath: asset.storage_path },
+      clientId
+    );
+
+    return true;
+  }
+
+  public getActiveCandidatePosterAsset(clientId: string): FileAsset | null {
+    const assets = this.getFileAssets(clientId, {
+      module: "branding",
+      entityType: "client_poster",
+      status: "active",
+    });
+    return assets.length > 0 ? assets[0] : null;
+  }
+
+  public setCandidatePosterAsset(
+    clientId: string,
+    assetData: {
+      fileName: string;
+      fileSize: number;
+      mimeType: string;
+      storagePath: string;
+      uploadedBy?: string;
+      altText?: string;
+    }
+  ): { client: Client | null; fileAsset: FileAsset } {
+    // 1. Mark previous active posters for this client as inactive
+    const existingAssets = this.getFileAssets(clientId, {
+      module: "branding",
+      entityType: "client_poster",
+      status: "active",
+    });
+    existingAssets.forEach((prev) => {
+      this.updateFileAsset(clientId, prev.id, { status: "inactive" });
+    });
+
+    // 2. Create new active file asset
+    const ext = assetData.fileName.split(".").pop() || "jpg";
+    const fileAsset = this.createFileAsset(clientId, {
+      module: "branding",
+      entity_type: "client_poster",
+      entity_id: clientId,
+      file_name: assetData.fileName,
+      file_extension: ext,
+      mime_type: assetData.mimeType,
+      storage_provider: "supabase_storage",
+      storage_path: assetData.storagePath,
+      file_size: assetData.fileSize,
+      status: "active",
+      uploaded_by: assetData.uploadedBy,
+      metadata: {
+        category: "posters",
+        alt_text: assetData.altText || "Official Candidate Campaign Poster",
+      },
+    });
+
+    // 3. Update client poster_url
+    const client = this.updateCandidatePoster(
+      clientId,
+      assetData.storagePath,
+      assetData.altText
+    );
+
+    return { client, fileAsset };
+  }
 }
 
 export const dbService = new DataService();
+
 

@@ -14,6 +14,7 @@ import { LogOut, Smartphone } from "lucide-react";
 export default function VolunteerLayout({ children }: { children: React.ReactNode }) {
   const { user, role, volunteer, client, isLoading, logout, quickLoginDemo } = useAuth();
   const { language, setLanguage, t } = useLanguage();
+  const isHindi = language === "hi";
 
   if (isLoading) {
     return (
@@ -86,8 +87,13 @@ export default function VolunteerLayout({ children }: { children: React.ReactNod
             </button>
           </div>
 
-          <Link href="/volunteer/activity" className="flex-shrink-0">
+          <Link href="/volunteer/communication" className="flex-shrink-0">
             <span className="text-xs sm:text-[13px] font-semibold text-[#714B67] px-2 sm:px-2.5 py-1 bg-[#F1ECEF] border border-[#D9CAD5] rounded-[3px] whitespace-nowrap">
+              {isHindi ? "संचार" : "Comm"}
+            </span>
+          </Link>
+          <Link href="/volunteer/activity" className="flex-shrink-0">
+            <span className="text-xs sm:text-[13px] font-semibold text-[#495057] px-2 sm:px-2.5 py-1 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[3px] whitespace-nowrap">
               {t("navActivity")}
             </span>
           </Link>

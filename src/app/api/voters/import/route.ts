@@ -4,6 +4,7 @@ import { requirePermission } from "@/lib/security/rbac";
 import { validateTenantAccess } from "@/lib/security/tenant";
 import { parseVoterCsv } from "@/lib/utils/csv-parser";
 import { dbService } from "@/lib/store/data-service";
+import { storageService } from "@/lib/storage";
 
 const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024; // 2MB Limit
 const MAX_ROWS = 10000;
@@ -73,12 +74,40 @@ export async function POST(req: NextRequest) {
 
     const { inserted, skipped } = dbService.batchCreateVoters(effectiveClientId, "campaign-1", votersToInsert);
 
+    // Archive source file into voter-files bucket and create file_assets record
+    let fileAssetRecord;
+    try {
+      const csvBlob = new Blob([csvText], { type: "text/csv" });
+      const storageResult = await storageService.uploadVoterFile(csvBlob, {
+        clientId: effectiveClientId,
+        campaignId: "campaign-1",
+        uploadedBy: session!.userId,
+        customName: `voter_roll_batch_${Date.now()}.csv`,
+        metadata: {
+          total_rows: parseResult.totalRows,
+          imported_rows: inserted,
+          duplicates: parseResult.duplicates + skipped,
+          invalid_rows: parseResult.invalidRows.length,
+          uploaded_by_name: session!.fullName,
+        },
+      });
+      fileAssetRecord = storageResult.fileAsset;
+    } catch (archiveErr) {
+      console.warn("Voter file storage archiving notice:", archiveErr);
+    }
+
     dbService.logAction(
       { id: session!.userId, name: session!.fullName },
       "VOTERS_BULK_IMPORTED",
       "Voter",
       undefined,
-      { count: inserted, totalRows: parseResult.totalRows, duplicates: parseResult.duplicates + skipped },
+      {
+        count: inserted,
+        totalRows: parseResult.totalRows,
+        duplicates: parseResult.duplicates + skipped,
+        fileAssetId: fileAssetRecord?.id,
+        storagePath: fileAssetRecord?.storage_path,
+      },
       effectiveClientId
     );
 

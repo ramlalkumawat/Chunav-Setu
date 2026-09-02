@@ -319,6 +319,21 @@ export default function VolunteersPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input
+              label="App Login ID / Username"
+              placeholder="e.g. amit_vol_101"
+              value={(formData as any).username || ""}
+              onChange={(e) => setFormData({ ...formData, username: e.target.value } as any)}
+            />
+            <Input
+              label="Initial Password / PIN"
+              placeholder="e.g. Setu@2026"
+              value={(formData as any).password || ""}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value } as any)}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Select
               label={t("wardLocality")}
               value={formData.assigned_area_id}

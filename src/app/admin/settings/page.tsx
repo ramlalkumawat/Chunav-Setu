@@ -35,7 +35,7 @@ export default function AdminSettingsPage() {
           <p className="text-sm text-[#6C757D]">PostgreSQL schema isolation status</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
           <div className="p-4 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[4px]">
             <div className="flex items-center gap-2 font-bold text-[#212529]">
               <Database className="w-4 h-4 text-[#714B67]" />
@@ -53,6 +53,16 @@ export default function AdminSettingsPage() {
             </div>
             <p className="text-[#6C757D] mt-1.5 text-xs leading-relaxed">
               Isolated tenant partitions with zero cross-leakage.
+            </p>
+          </div>
+
+          <div className="p-4 bg-[#FAF7F9] border border-[#DEE2E6] rounded-[4px]">
+            <div className="flex items-center gap-2 font-bold text-[#714B67]">
+              <Database className="w-4 h-4 text-[#714B67]" />
+              <span>Supabase Storage Engine</span>
+            </div>
+            <p className="text-[#6C757D] mt-1.5 text-xs leading-relaxed">
+              Private buckets <code className="text-[#714B67] font-bold">campaign-files</code> & <code className="text-[#714B67] font-bold">voter-files</code> linked with <code className="text-[#714B67] font-bold">public.file_assets</code>.
             </p>
           </div>
         </div>

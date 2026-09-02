@@ -21,6 +21,7 @@ import {
   History,
   Flag,
   Vote,
+  MessageSquare,
   X,
 } from "lucide-react";
 
@@ -40,6 +41,7 @@ export function Sidebar({ isOpen, onClose }: { isOpen?: boolean; onClose?: () =>
 
   const clientAdminNav = [
     { key: "navDashboard", name: t("navDashboard"), href: "/client", icon: LayoutDashboard },
+    { key: "navCommunication", name: t("navCommunication"), href: "/client/communication", icon: MessageSquare },
     { key: "navPollingDay", name: t("navPollingDay"), href: "/client/polling-day", icon: Vote },
     { key: "navVoters", name: t("navVoters"), href: "/client/voters", icon: Users },
     { key: "navBooths", name: t("navBooths"), href: "/client/booths", icon: Building },

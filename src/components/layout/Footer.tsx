@@ -51,9 +51,9 @@ export function Footer() {
         <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-[13px] text-[#6C757D]">
           <span className="font-semibold text-[#212529] flex items-center gap-1.5 whitespace-nowrap">
             <HelpCircle className="w-3.5 h-3.5 text-[#714B67] flex-shrink-0" />
-            <span>{isHindi ? "पूछताछ एवं शिकायत" : "For Enquiry & Complaint"}:</span>
+            <span>{isHindi ? "पूछताछ एवं शिकायत के लिए" : "For Enquiry & Complaint"}:</span>
           </span>
-          <span className="text-[#212529] font-medium whitespace-nowrap">
+          <span className="text-[#212529] font-semibold whitespace-nowrap">
             {isHindi ? "रामलाल कुमावत" : "Ramlal Kumawat"}
           </span>
           <span className="text-[#DEE2E6] hidden sm:inline">•</span>

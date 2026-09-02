@@ -3,6 +3,12 @@
 -- Migration: 004_polling_day_module.sql
 -- =====================================================================
 
+-- 0. EXTEND CLIENTS TABLE FOR BRANDING & ELECTION DATE
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS poster_url TEXT;
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS poster_alt TEXT;
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS election_date DATE;
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS username TEXT;
+
 -- 1. POLLING DAYS TABLE
 CREATE TABLE IF NOT EXISTS public.polling_days (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -29,9 +35,11 @@ CREATE TABLE IF NOT EXISTS public.polling_day_updates (
     voter_id UUID NOT NULL REFERENCES public.voters(id) ON DELETE CASCADE,
     booth_id UUID REFERENCES public.booths(id) ON DELETE SET NULL,
     volunteer_id UUID REFERENCES public.volunteers(id) ON DELETE SET NULL,
-    status TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('VOTING_REPORTED', 'PENDING', 'FOLLOW_UP_REQUIRED')),
+    status TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('VOTE_CAST', 'PENDING', 'NOT_REPORTED', 'VOTING_REPORTED', 'FOLLOW_UP_REQUIRED')),
+    previous_status TEXT,
     note TEXT,
     updated_by TEXT NOT NULL,
+    updated_by_role TEXT DEFAULT 'volunteer',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(polling_day_id, voter_id)

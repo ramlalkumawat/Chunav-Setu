@@ -17,6 +17,8 @@ import { Pagination } from "@/components/ui/Pagination";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { OdooControlPanel } from "@/components/ui/OdooControlPanel";
+import { VoterActionBar } from "@/components/communication/VoterActionBar";
+import { BatchPollingSlipModal } from "@/components/communication/BatchPollingSlipModal";
 import {
   Plus,
   FileSpreadsheet,
@@ -28,6 +30,9 @@ import {
   Square,
   X,
   UserCheck,
+  FileText,
+  Phone,
+  MessageSquare,
 } from "lucide-react";
 
 export default function VotersPage() {
@@ -47,6 +52,7 @@ export default function VotersPage() {
   const [selectedVoterIds, setSelectedVoterIds] = useState<string[]>([]);
   const [bulkStatusModal, setBulkStatusModal] = useState(false);
   const [selectedBulkStatus, setSelectedBulkStatus] = useState<Voter["contact_status"]>("favorable");
+  const [isBatchSlipModal, setIsBatchSlipModal] = useState(false);
 
   // Filter params
   const [search, setSearch] = useState("");
@@ -394,6 +400,14 @@ export default function VotersPage() {
           <div className="flex items-center gap-2">
             <Button
               size="sm"
+              variant="primary"
+              onClick={() => setIsBatchSlipModal(true)}
+              leftIcon={<FileText className="w-4 h-4" />}
+            >
+              {t("batchGenerateSlips")}
+            </Button>
+            <Button
+              size="sm"
               variant="secondary"
               onClick={() => setBulkStatusModal(true)}
               leftIcon={<UserCheck className="w-4 h-4 text-[#714B67]" />}
@@ -488,7 +502,9 @@ export default function VotersPage() {
                       )}
                     </td>
                     <td className="text-right">
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <VoterActionBar voter={voter} client={client} layout="compact" onActionComplete={loadData} />
+                        <span className="w-[1px] h-4 bg-[#DEE2E6] inline-block mx-0.5" />
                         <button
                           onClick={() => setViewingVoter(voter)}
                           className="p-1.5 rounded hover:bg-[#F8F9FA] text-[#6C757D] hover:text-[#212529]"
@@ -718,8 +734,36 @@ export default function VotersPage() {
                 <p className="text-[#212529] mt-0.5 italic text-sm">"{viewingVoter.notes}"</p>
               </div>
             )}
+
+            {/* Quick Communication Action Bar */}
+            <div className="pt-3 border-t border-[#DEE2E6]">
+              <p className="text-xs font-bold text-[#6C757D] uppercase tracking-wider mb-2">
+                {t("directActions")}
+              </p>
+              <VoterActionBar
+                voter={viewingVoter}
+                client={client}
+                size="lg"
+                layout="grid"
+                onActionComplete={loadData}
+              />
+            </div>
           </div>
         </Modal>
+      )}
+
+      {/* Batch Polling Slips Modal */}
+      {isBatchSlipModal && (
+        <BatchPollingSlipModal
+          isOpen={true}
+          onClose={() => setIsBatchSlipModal(false)}
+          voters={voters.filter((v) => selectedVoterIds.includes(v.id))}
+          client={client}
+          onCompleted={() => {
+            setSelectedVoterIds([]);
+            loadData();
+          }}
+        />
       )}
 
       {/* Bulk Status Change Modal */}

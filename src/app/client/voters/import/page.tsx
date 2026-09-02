@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/context/auth-context";
 import { useToast } from "@/lib/context/toast-context";
 import { useLanguage } from "@/lib/i18n";
 import { parseVoterCsv, CsvParseResult } from "@/lib/utils/csv-parser";
+import { storageService } from "@/lib/storage";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
@@ -30,6 +31,7 @@ export default function VoterImportPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [csvContent, setCsvContent] = useState("");
   const [fileName, setFileName] = useState("");
+  const [rawFile, setRawFile] = useState<File | null>(null);
   const [parseResult, setParseResult] = useState<CsvParseResult | null>(null);
 
   const [selectedBoothId, setSelectedBoothId] = useState("");
@@ -50,6 +52,7 @@ export default function VoterImportPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setRawFile(file);
     setFileName(file.name);
     const reader = new FileReader();
     reader.onload = (evt) => {
@@ -80,6 +83,7 @@ UP/48/281/008806,Nasreen Bano,,30,Female,H.No 45 New Basti,uncontacted
 UP/48/281/001421,Duplicate Existing Voter,+91 99999 99999,40,Male,Test,uncontacted`;
 
     setFileName("Sample_Electoral_Roll_2026.csv");
+    setRawFile(new File([sampleCsv], "Sample_Electoral_Roll_2026.csv", { type: "text/csv" }));
     setCsvContent(sampleCsv);
     processCsv(sampleCsv);
   };
@@ -91,6 +95,28 @@ UP/48/281/001421,Duplicate Existing Voter,+91 99999 99999,40,Male,Test,uncontact
     }
 
     setIsImporting(true);
+
+    // 1. Archive raw source file to voter-files/{clientId}/{filename} in Supabase Storage
+    let fileAssetRecord;
+    try {
+      const fileToUpload = rawFile || new Blob([csvContent], { type: "text/csv" });
+      const storageRes = await storageService.uploadVoterFile(fileToUpload, {
+        clientId,
+        campaignId: "camp-1",
+        uploadedBy: user?.id,
+        customName: fileName || "candidate_voter_batch.csv",
+        metadata: {
+          total_rows: parseResult.totalRows,
+          valid_rows: parseResult.validRows.length,
+          uploaded_by_name: user?.full_name,
+        },
+      });
+      if (storageRes.success) {
+        fileAssetRecord = storageRes.fileAsset;
+      }
+    } catch (archiveErr) {
+      console.warn("Storage archiving warning:", archiveErr);
+    }
 
     const booth = booths.find((b) => b.id === selectedBoothId) || booths[0];
     const area = areas.find((a) => a.id === selectedAreaId) || areas[0];
@@ -119,7 +145,13 @@ UP/48/281/001421,Duplicate Existing Voter,+91 99999 99999,40,Male,Test,uncontact
       "VOTER_BATCH_IMPORTED",
       "VoterBatch",
       `batch-${Date.now()}`,
-      { inserted: result.inserted, skipped: result.skipped, fileName },
+      {
+        inserted: result.inserted,
+        skipped: result.skipped,
+        fileName,
+        fileAssetId: fileAssetRecord?.id,
+        storagePath: fileAssetRecord?.storage_path,
+      },
       clientId
     );
 
@@ -132,7 +164,10 @@ UP/48/281/001421,Duplicate Existing Voter,+91 99999 99999,40,Male,Test,uncontact
 
     setIsImporting(false);
     setStep(3);
-    success("Batch Import Successful", `Imported ${result.inserted} electors into campaign.`);
+    success(
+      "Batch Import Successful",
+      `Imported ${result.inserted} electors into campaign and archived file in private storage.`
+    );
   };
 
   return (

@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/context/auth-context";
 import { useLanguage } from "@/lib/i18n";
 import { Voter } from "@/lib/types";
 import { Badge } from "@/components/ui/Badge";
+import { VoterActionBar } from "@/components/communication/VoterActionBar";
 import {
   MapPin,
   ChevronRight,
@@ -23,9 +24,10 @@ export default function VolunteerVotersPage() {
   const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
-    const all = dbService.getVoters(clientId, { pageSize: 500 }).data;
-    setVoters(all);
-  }, [clientId]);
+    const volId = volunteer?.id || "vol-1";
+    const result = dbService.getVotersForVolunteer(clientId, volId, { pageSize: 500 });
+    setVoters(result.data);
+  }, [clientId, volunteer]);
 
   const filteredVoters = voters.filter((v) => {
     const matchesStatus =
@@ -99,34 +101,54 @@ export default function VolunteerVotersPage() {
         {filteredVoters.map((voter) => (
           <div
             key={voter.id}
-            onClick={() => router.push(`/volunteer/survey?voterId=${voter.id}`)}
-            className="p-3.5 hover:bg-[#F8F9FA] active:bg-[#F1ECEF] transition-colors cursor-pointer flex items-center justify-between gap-3"
+            className="p-3.5 hover:bg-[#F8F9FA] transition-colors space-y-2.5"
           >
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-bold text-[15px] text-[#212529]">
-                  {voter.name}
-                </h3>
-                <span className="text-xs font-mono text-[#714B67] font-bold">
-                  {voter.voter_id_card}
-                </span>
+            <div
+              onClick={() => router.push(`/volunteer/survey?voterId=${voter.id}`)}
+              className="flex items-start justify-between gap-3 cursor-pointer"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-bold text-[15px] text-[#212529]">
+                    {voter.name}
+                  </h3>
+                  <span className="text-xs font-mono text-[#714B67] font-bold">
+                    {voter.voter_id_card}
+                  </span>
+                </div>
+
+                <p className="text-xs sm:text-sm text-[#6C757D] mt-0.5 font-medium">
+                  {voter.age ? `${voter.age} yrs` : ""} • {voter.gender || ""} • {voter.booth_number}
+                  {voter.mobile ? ` • 📞 ${voter.mobile}` : ""}
+                </p>
+
+                {voter.address && (
+                  <p className="text-xs text-[#6C757D] truncate mt-1 flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span>{voter.address}</span>
+                  </p>
+                )}
               </div>
 
-              <p className="text-xs sm:text-sm text-[#6C757D] mt-0.5 font-medium">
-                {voter.age ? `${voter.age} yrs` : ""} • {voter.gender || ""} • {voter.booth_number}
-              </p>
-
-              {voter.address && (
-                <p className="text-xs text-[#6C757D] truncate mt-1 flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-                  <span>{voter.address}</span>
-                </p>
-              )}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Badge status={voter.contact_status} size="md" />
+                <ChevronRight className="w-4 h-4 text-[#ADB5BD]" />
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <Badge status={voter.contact_status} size="md" />
-              <ChevronRight className="w-5 h-5 text-[#ADB5BD]" />
+            {/* Quick Touch Action Bar (Section 12, 22) */}
+            <div className="pt-2 border-t border-[#F1F3F5]">
+              <VoterActionBar
+                voter={voter}
+                client={client}
+                size="sm"
+                layout="grid"
+                onActionComplete={() => {
+                  const volId = volunteer?.id || "vol-1";
+                  const result = dbService.getVotersForVolunteer(clientId, volId, { pageSize: 500 });
+                  setVoters(result.data);
+                }}
+              />
             </div>
           </div>
         ))}

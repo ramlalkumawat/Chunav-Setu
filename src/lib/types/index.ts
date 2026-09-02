@@ -19,11 +19,16 @@ export interface Client {
   candidate_name: string;
   mobile: string;
   email: string;
+  username?: string;
+  password?: string;
   campaign_name: string;
   election_type: 'Vidhan Sabha' | 'Lok Sabha' | 'Municipal Corporation' | 'Panchayat' | 'Zilla Parishad' | string;
+  election_date?: string;
   location: string;
   status: 'active' | 'inactive' | 'archived';
   logo_url?: string;
+  poster_url?: string;
+  poster_alt?: string;
   created_at: string;
   updated_at?: string;
   // Computed aggregations
@@ -84,6 +89,8 @@ export interface Volunteer {
   name: string;
   mobile: string;
   email?: string;
+  username?: string;
+  password?: string;
   assigned_booth_id?: string;
   assigned_booth_name?: string;
   assigned_area_id?: string;
@@ -131,6 +138,14 @@ export interface Voter {
   updated_at?: string;
   last_contacted_by?: string;
   last_contacted_at?: string;
+  // Communication preferences & telemetry
+  whatsapp_allowed?: boolean;
+  calling_allowed?: boolean;
+  opt_out?: boolean;
+  last_called_at?: string;
+  last_call_status?: CallOutcome | string;
+  last_whatsapp_at?: string;
+  last_slip_generated_at?: string;
 }
 
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -237,10 +252,10 @@ export interface PaginatedResult<T> {
 }
 
 // ---------------------------------------------------------------------
-// POLLING DAY (मतदान दिवस) MODULE TYPES
+// POLLING DAY (मतदान दिवस) MODULE TYPES — OPERATIONAL STATUS ONLY
 // ---------------------------------------------------------------------
 export type PollingDayStatus = 'upcoming' | 'active' | 'completed';
-export type PollingVoterStatus = 'VOTING_REPORTED' | 'PENDING' | 'FOLLOW_UP_REQUIRED';
+export type PollingVoterStatus = 'VOTE_CAST' | 'PENDING' | 'NOT_REPORTED' | 'VOTING_REPORTED' | 'FOLLOW_UP_REQUIRED';
 
 export interface PollingDay {
   id: string;
@@ -271,8 +286,10 @@ export interface PollingDayUpdate {
   volunteer_id?: string;
   volunteer_name?: string;
   status: PollingVoterStatus;
+  previous_status?: PollingVoterStatus;
   note?: string;
   updated_by: string;
+  updated_by_role?: string;
   created_at: string;
   updated_at?: string;
 }
@@ -305,8 +322,10 @@ export interface PollingDayBoothStats {
   area_name: string;
   total_voters: number;
   reported_count: number;
+  vote_cast_count: number;
   voting_reported_count: number;
   pending_count: number;
+  not_reported_count: number;
   follow_up_count: number;
   progress_percentage: number;
   assigned_volunteers_count: number;
@@ -320,6 +339,8 @@ export interface PollingDayVolunteerStats {
   assigned_booth_name: string;
   assigned_area_name: string;
   updates_today: number;
+  vote_cast_updates: number;
+  pending_updates: number;
   last_update_time?: string;
   pending_followups: number;
   is_active: boolean;
@@ -328,9 +349,11 @@ export interface PollingDayVolunteerStats {
 export interface PollingDayDashboardStats {
   pollingDay: PollingDay | null;
   totalVoters: number;
+  voteCastCount: number;
   statusReported: number;
   votingActivityReported: number;
   pendingVoters: number;
+  notReportedCount: number;
   followUpsCount: number;
   turnoutPercentage: number;
   hourlyActivity: { hour: string; label: string; count: number }[];
@@ -339,3 +362,124 @@ export interface PollingDayDashboardStats {
   volunteerStats: PollingDayVolunteerStats[];
 }
 
+// ---------------------------------------------------------------------
+// COMMUNICATION (संचार) & POLLING SERVICES MODULE TYPES
+// ---------------------------------------------------------------------
+export type CommunicationChannel = 'CALL' | 'WHATSAPP' | 'POLLING_SLIP';
+
+export type CommunicationAction = 
+  | 'CALL_ATTEMPTED'
+  | 'CALL_CONNECTED'
+  | 'WHATSAPP_OPENED'
+  | 'POLLING_SLIP_GENERATED'
+  | 'POLLING_SLIP_SHARED';
+
+export type CallOutcome = 
+  | 'Connected'
+  | 'No Answer'
+  | 'Busy'
+  | 'Wrong Number'
+  | 'Follow-up Required';
+
+export interface CommunicationLog {
+  id: string;
+  client_id: string;
+  campaign_id: string;
+  voter_id: string;
+  voter_name: string;
+  voter_card: string;
+  voter_mobile?: string;
+  booth_id?: string;
+  booth_number?: string;
+  booth_name?: string;
+  area_name?: string;
+  user_id?: string;
+  user_role: UserRole;
+  actor_name: string;
+  channel: CommunicationChannel;
+  action: CommunicationAction;
+  status: CallOutcome | string; // e.g., 'Connected', 'Slip Shared', 'Slip Generated', 'Opened'
+  note?: string;
+  created_at: string;
+}
+
+export interface PollingSlipRecord {
+  id: string;
+  client_id: string;
+  campaign_id: string;
+  voter_id: string;
+  voter_name: string;
+  voter_card: string;
+  booth_number: string;
+  booth_name: string;
+  polling_date: string;
+  polling_time: string;
+  slip_number: string;
+  created_by: string;
+  created_at: string;
+  shared_via_whatsapp?: boolean;
+}
+
+export interface CommunicationSummaryStats {
+  todaysCalls: number;
+  connectedCalls: number;
+  whatsAppActivity: number;
+  pollingSlipsGenerated: number;
+  pendingFollowUps: number;
+  totalVoters: number;
+  contactablePhoneVoters: number;
+  optedOutCount: number;
+  channelBreakdown: {
+    calls: number;
+    whatsapp: number;
+    slips: number;
+  };
+  recentLogs: CommunicationLog[];
+}
+
+// ---------------------------------------------------------------------
+// STORAGE & FILE ASSET TYPES
+// ---------------------------------------------------------------------
+export type StorageProvider = 'supabase_storage' | 'cloudflare_r2';
+export type CampaignFileCategory = 'posters' | 'images' | 'documents' | 'branding' | 'other';
+export type FileAssetStatus = 'active' | 'inactive' | 'archived' | 'deleted';
+
+export interface FileAsset {
+  id: string;
+  client_id: string;
+  campaign_id?: string;
+  uploaded_by?: string;
+  module: string;             // 'branding' | 'voter_import' | 'campaign_media' | 'documents' | string
+  entity_type?: string;       // 'client_poster' | 'voter_list' | 'campaign_banner' | string
+  entity_id?: string;
+  file_name: string;
+  file_extension: string;
+  mime_type: string;
+  storage_provider: StorageProvider;
+  storage_path: string;       // e.g. "campaign-files/{client_id}/posters/{filename}"
+  file_size: number;          // Size in bytes
+  status: FileAssetStatus;
+  metadata?: Record<string, any>;
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface StorageUploadResult {
+  success: boolean;
+  fileAsset?: FileAsset;
+  storagePath?: string;
+  signedUrl?: string;
+  error?: string;
+}
+
+export interface StorageSignedUrlResult {
+  success: boolean;
+  signedUrl?: string;
+  expiresIn?: number;
+  error?: string;
+}
+
+export interface StorageValidationOptions {
+  allowedMimeTypes?: string[];
+  maxSizeBytes?: number;
+}

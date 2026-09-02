@@ -440,7 +440,7 @@ export interface CommunicationSummaryStats {
 // ---------------------------------------------------------------------
 // STORAGE & FILE ASSET TYPES
 // ---------------------------------------------------------------------
-export type StorageProvider = 'supabase_storage' | 'cloudflare_r2';
+export type StorageProvider = 'supabase_storage' | 'cloudflare_r2' | 'local';
 export type CampaignFileCategory = 'posters' | 'images' | 'documents' | 'branding' | 'other';
 export type FileAssetStatus = 'active' | 'inactive' | 'archived' | 'deleted';
 

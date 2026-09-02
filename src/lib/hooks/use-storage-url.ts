@@ -27,8 +27,9 @@ export function useStorageUrl(storagePathOrUrl?: string | null): {
 
     const trimmed = path.trim();
 
-    // 1. Direct Web URLs or Base64 / Blob data URLs
+    // 1. Direct Web URLs or Base64 / Blob data URLs or local public URLs
     if (
+      trimmed.startsWith("/") ||
       trimmed.startsWith("http://") ||
       trimmed.startsWith("https://") ||
       trimmed.startsWith("blob:") ||

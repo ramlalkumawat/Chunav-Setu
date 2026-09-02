@@ -26,7 +26,7 @@ export default function VolunteersPage() {
   const { client, user } = useAuth();
   const { success, error: toastError } = useToast();
   const { t } = useLanguage();
-  const clientId = client?.id || "client-1";
+  const clientId = client?.id || user?.client_id || "";
 
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
   const [booths, setBooths] = useState<Booth[]>([]);

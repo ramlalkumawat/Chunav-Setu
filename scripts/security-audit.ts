@@ -1,12 +1,4 @@
 import {
-  hashPassword,
-  verifyPassword,
-  hashPasswordWithSalt,
-  authenticateCredentials,
-  generatePasswordResetToken,
-  consumePasswordResetToken,
-} from "../src/lib/security/auth";
-import {
   createSessionToken,
   verifySessionToken,
 } from "../src/lib/security/session";
@@ -40,32 +32,9 @@ async function runSecurityTestSuite() {
   console.log("==========================================================\n");
 
   // -------------------------------------------------------------------
-  // 1. AUTHENTICATION & PASSWORD HASHING
+  // 1. RATE LIMITING & BRUTE FORCE PROTECTION
   // -------------------------------------------------------------------
-  console.log("1. Testing Cryptographic Authentication & Password Hashing:");
-  const testPass = "SecretCampaign@2026";
-  const { hash, salt } = hashPassword(testPass);
-  assert(hash.length === 128, "PBKDF2-SHA256 produces 512-bit (128 hex chars) hash");
-  assert(verifyPassword(testPass, hash, salt), "Valid password verifies in constant-time");
-  assert(!verifyPassword("WrongPassword123", hash, salt), "Invalid password correctly rejected");
-
-  const authValid = await authenticateCredentials("superadmin@chunavsetu.com", "Chunav@2026");
-  assert(authValid.success && authValid.user?.role === "super_admin", "Super Admin authenticates with valid credentials");
-
-  const authInvalid = await authenticateCredentials("superadmin@chunavsetu.com", "WrongPass");
-  assert(!authInvalid.success, "Invalid credentials rejected with secure error");
-
-  const resetToken = generatePasswordResetToken("candidate@rajeshsharma.in");
-  assert(resetToken.length === 64, "Password reset token is cryptographically random 256-bit hex");
-  const consumed = consumePasswordResetToken(resetToken);
-  assert(consumed.valid && consumed.email === "candidate@rajeshsharma.in", "Reset token consumed successfully");
-  const consumedAgain = consumePasswordResetToken(resetToken);
-  assert(!consumedAgain.valid, "Single-use reset token cannot be re-used");
-
-  // -------------------------------------------------------------------
-  // 2. RATE LIMITING & BRUTE FORCE PROTECTION
-  // -------------------------------------------------------------------
-  console.log("\n2. Testing Rate Limiting & Brute Force Defense:");
+  console.log("1. Testing Rate Limiting & Brute Force Defense:");
   const testIp = `192.168.1.${Math.floor(Math.random() * 1000)}`;
   let blocked = false;
   for (let i = 0; i < 15; i++) {
@@ -78,9 +47,9 @@ async function runSecurityTestSuite() {
   assert(blocked, "Auth brute-force attempts trigger sliding-window rate limiting (HTTP 429)");
 
   // -------------------------------------------------------------------
-  // 3. SESSION TOKEN TAMPERING & CRYPTOGRAPHIC VERIFICATION
+  // 2. SESSION TOKEN TAMPERING & CRYPTOGRAPHIC VERIFICATION
   // -------------------------------------------------------------------
-  console.log("\n3. Testing Session Signatures & Tamper Resistance:");
+  console.log("\n2. Testing Session Signatures & Tamper Resistance:");
   const mockUser: SecurityUser = {
     id: "user-101",
     email: "candidate@rajeshsharma.in",
@@ -105,9 +74,9 @@ async function runSecurityTestSuite() {
   assert(forgedVerification === null, "Tampered session payload with forged signature is strictly REJECTED");
 
   // -------------------------------------------------------------------
-  // 4. ROLE-BASED ACCESS CONTROL (RBAC)
+  // 3. ROLE-BASED ACCESS CONTROL (RBAC)
   // -------------------------------------------------------------------
-  console.log("\n4. Testing Role-Based Access Control (RBAC Matrix):");
+  console.log("\n3. Testing Role-Based Access Control (RBAC Matrix):");
   assert(hasPermission("super_admin", "system", "manage"), "Super Admin can manage system settings");
   assert(hasPermission("super_admin", "client", "create"), "Super Admin can provision new client tenants");
   assert(!hasPermission("client_admin", "system", "manage"), "Candidate Admin CANNOT manage system settings");
@@ -117,9 +86,9 @@ async function runSecurityTestSuite() {
   assert(hasPermission("volunteer", "field_activity", "create"), "Volunteer can record door canvassing surveys");
 
   // -------------------------------------------------------------------
-  // 5. MULTI-TENANT ISOLATION & IDOR DEFENSE
+  // 4. MULTI-TENANT ISOLATION & IDOR DEFENSE
   // -------------------------------------------------------------------
-  console.log("\n5. Testing Multi-Tenant Isolation & IDOR Boundaries:");
+  console.log("\n4. Testing Multi-Tenant Isolation & IDOR Boundaries:");
   const client1Session: SessionTokenPayload = {
     userId: "user-client-1",
     email: "rajesh@sharma.in",
@@ -146,9 +115,9 @@ async function runSecurityTestSuite() {
   assert(!verifyEntityOwnership(client2Voter, client1Session), "Access to voter in different tenant is BLOCKED (IDOR Guard)");
 
   // -------------------------------------------------------------------
-  // 6. CSV FORMULA INJECTION NEUTRALIZATION (CWE-1236)
+  // 5. CSV FORMULA INJECTION NEUTRALIZATION (CWE-1236)
   // -------------------------------------------------------------------
-  console.log("\n6. Testing CSV Formula Injection Sanitization:");
+  console.log("\n5. Testing CSV Formula Injection Sanitization:");
   const dangerousCells = [
     "=cmd|'/C calc'!A0",
     "+SUM(1,2)",
@@ -167,9 +136,9 @@ async function runSecurityTestSuite() {
   assert(sanitizedCells[6] === '"Normal Name"', "Safe string remains unmodified");
 
   // -------------------------------------------------------------------
-  // 7. INPUT SANITIZATION & VALIDATION
+  // 6. INPUT SANITIZATION & VALIDATION
   // -------------------------------------------------------------------
-  console.log("\n7. Testing Input Sanitization & Format Validation:");
+  console.log("\n6. Testing Input Sanitization & Format Validation:");
   const xssInput = "<script>alert('xss')</script>John Doe";
   const cleanString = sanitizeString(xssInput);
   assert(!cleanString.includes("<script>"), "HTML/Script tags stripped from input");

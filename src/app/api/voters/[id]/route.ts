@@ -3,7 +3,7 @@ import { getRequestSession } from "@/lib/security/session";
 import { requirePermission } from "@/lib/security/rbac";
 import { validateTenantAccess, verifyEntityOwnership } from "@/lib/security/tenant";
 import { sanitizeString, isValidMobile } from "@/lib/security/sanitizer";
-import { dbService } from "@/lib/store/data-service";
+import { db } from "@/lib/supabase/database-service";
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const session = getRequestSession(req);
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const tenantCheck = validateTenantAccess(session!);
   if (!tenantCheck.authorized) return tenantCheck.errorResponse!;
 
-  const voter = dbService.getVoterById(tenantCheck.effectiveClientId!, params.id);
+  const voter = await db.getVoterById(tenantCheck.effectiveClientId!, params.id);
   if (!voter || !verifyEntityOwnership(voter, session!)) {
     return NextResponse.json({ error: "Elector record not found or unauthorized." }, { status: 404 });
   }
@@ -29,7 +29,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const tenantCheck = validateTenantAccess(session!);
   if (!tenantCheck.authorized) return tenantCheck.errorResponse!;
 
-  const voter = dbService.getVoterById(tenantCheck.effectiveClientId!, params.id);
+  const voter = await db.getVoterById(tenantCheck.effectiveClientId!, params.id);
   if (!voter || !verifyEntityOwnership(voter, session!)) {
     return NextResponse.json({ error: "Elector record not found or unauthorized." }, { status: 404 });
   }
@@ -53,9 +53,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if (body.follow_up_status !== undefined) updates.follow_up_status = body.follow_up_status;
     if (body.notes !== undefined) updates.notes = sanitizeString(body.notes);
 
-    const updated = dbService.updateVoter(tenantCheck.effectiveClientId!, params.id, updates);
+    const updated = await db.updateVoter(tenantCheck.effectiveClientId!, params.id, updates);
+    if (!updated) {
+      return NextResponse.json({ error: "Failed to update voter record." }, { status: 500 });
+    }
 
-    dbService.logAction(
+    await db.logAuditEvent(
       { id: session!.userId, name: session!.fullName },
       "VOTER_UPDATED",
       "Voter",
@@ -79,14 +82,17 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const tenantCheck = validateTenantAccess(session!);
   if (!tenantCheck.authorized) return tenantCheck.errorResponse!;
 
-  const voter = dbService.getVoterById(tenantCheck.effectiveClientId!, params.id);
+  const voter = await db.getVoterById(tenantCheck.effectiveClientId!, params.id);
   if (!voter || !verifyEntityOwnership(voter, session!)) {
     return NextResponse.json({ error: "Elector record not found or unauthorized." }, { status: 404 });
   }
 
-  dbService.deleteVoter(tenantCheck.effectiveClientId!, params.id);
+  const deleted = await db.deleteVoter(tenantCheck.effectiveClientId!, params.id);
+  if (!deleted) {
+    return NextResponse.json({ error: "Failed to delete voter record." }, { status: 500 });
+  }
 
-  dbService.logAction(
+  await db.logAuditEvent(
     { id: session!.userId, name: session!.fullName },
     "VOTER_DELETED",
     "Voter",

@@ -32,14 +32,16 @@ export default function VolunteerPollingDayPage() {
   const [, startTransition] = useTransition();
   const isHindi = language === "hi";
 
-  const clientId = client?.id || "client-1";
-  const volunteerId = authVolunteer?.id || user?.id || "vol-1";
+  const clientId = client?.id || user?.client_id || "";
+  const volunteerId = authVolunteer?.id || user?.id || "";
   const volunteerName = authVolunteer?.name || user?.full_name || "Field Volunteer";
 
   // Data state
   const [pollingDay, setPollingDay] = useState<any>(null);
   const [volunteer, setVolunteer] = useState<any>(null);
   const [voters, setVoters] = useState<any[]>([]);
+  const [booths, setBooths] = useState<any[]>([]);
+  const [selectedBooth, setSelectedBooth] = useState("all");
   const [counts, setCounts] = useState({ total: 0, voteCast: 0, pending: 0, notReported: 0 });
 
   // Filter state
@@ -53,27 +55,35 @@ export default function VolunteerPollingDayPage() {
   const [updatedTimestamps, setUpdatedTimestamps] = useState<Record<string, string>>({});
 
   const loadData = useCallback(() => {
+    if (!clientId) return;
     const pd = dbService.getPollingDay(clientId);
     setPollingDay(pd);
+
+    const boothList = dbService.getBooths(clientId);
+    setBooths(boothList);
 
     const vol = dbService.getVolunteerById(clientId, volunteerId) || {
       id: volunteerId,
       name: volunteerName,
-      assigned_booth_name: "Booth 101",
-      assigned_area_name: "Hazratganj Main",
+      assigned_booth_name: client?.campaign_name || "All Booths",
+      assigned_area_name: client?.location || "Constituency",
     };
     setVolunteer(vol);
 
-    // Strict Volunteer Scoping: only fetch voters for this volunteer's assigned booth
+    // Fetch voters across campaign booths
     const res = dbService.getPollingDayVoters(clientId, volunteerId, {
       search,
       status: statusFilter,
-      pageSize: 150,
+      boothId: selectedBooth,
+      pageSize: 500,
     });
     setVoters(res.data);
 
-    // Compute booth summary totals
-    const allRes = dbService.getPollingDayVoters(clientId, volunteerId, { pageSize: 500 });
+    // Compute summary totals
+    const allRes = dbService.getPollingDayVoters(clientId, volunteerId, {
+      boothId: selectedBooth,
+      pageSize: 1000,
+    });
     const all = allRes.data;
     const voteCast = all.filter((v: any) => v.polling_status === "VOTE_CAST" || v.polling_status === "VOTING_REPORTED").length;
     const notReported = all.filter((v: any) => v.polling_status === "NOT_REPORTED").length;
@@ -85,7 +95,7 @@ export default function VolunteerPollingDayPage() {
       pending,
       notReported,
     });
-  }, [clientId, volunteerId, volunteerName, search, statusFilter]);
+  }, [clientId, volunteerId, volunteerName, search, statusFilter, selectedBooth, client]);
 
   useEffect(() => {
     loadData();

@@ -24,7 +24,7 @@ export default function VolunteerWhatsAppPage() {
   const { t, language } = useLanguage();
   const isHindi = language === "hi";
 
-  const clientId = client?.id || "client-1";
+  const clientId = client?.id || user?.client_id || "";
   const volunteerId = volunteer?.id || user?.id || "vol-1";
   const assignedBoothName = volunteer?.assigned_booth_name || "Booth 101";
 

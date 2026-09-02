@@ -45,24 +45,33 @@ export default function ClientDashboardPage() {
   const { client } = useAuth();
   const { t, language } = useLanguage();
   const isHindi = language === "hi";
-  const clientId = client?.id || "client-1";
+  const clientId = client?.id;
 
   const [stats, setStats] = useState<any>(null);
   const [pollingStats, setPollingStats] = useState<any>(null);
   const [commSummary, setCommSummary] = useState<any>(null);
 
   useEffect(() => {
+    if (!clientId) return;
     setStats(dbService.getClientDashboardStats(clientId));
     setPollingStats(dbService.getPollingDayDashboardStats(clientId));
     setCommSummary(dbService.getCommunicationSummary(clientId));
   }, [clientId]);
 
-  if (!stats) return null;
+  if (!clientId || !stats) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-sm text-[#6C757D]">
+          {isHindi ? "कैंपेन डेटा लोड हो रहा है..." : "Loading campaign dashboard..."}
+        </p>
+      </div>
+    );
+  }
 
   const candidateName = client?.candidate_name || "Candidate";
   const campaignName = client?.campaign_name || "Official Campaign";
-  const electionDate = client?.election_date || "12 December 2026";
-  const pollingTurnout = pollingStats?.turnoutPercentage || stats.contactPercentage || 68;
+  const electionDate = client?.election_date || "";
+  const pollingTurnout = pollingStats?.turnoutPercentage || stats.contactPercentage || 0;
 
   return (
     <div className="space-y-4 sm:space-y-6 w-full max-w-full overflow-hidden">

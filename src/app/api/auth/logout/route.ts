@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clearSessionCookie, getRequestSession } from "@/lib/security/session";
-import { dbService } from "@/lib/store/data-service";
+import { db } from "@/lib/supabase/database-service";
 
 export async function POST(req: NextRequest) {
   const session = getRequestSession(req);
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   clearSessionCookie(response);
 
   if (session) {
-    dbService.logAction(
+    await db.logAuditEvent(
       { id: session.userId, name: session.fullName },
       "USER_LOGOUT",
       "Session",

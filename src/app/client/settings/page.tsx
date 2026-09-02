@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { dbService } from "@/lib/store/data-service";
 import { useAuth } from "@/lib/context/auth-context";
 import { useToast } from "@/lib/context/toast-context";
@@ -16,19 +16,35 @@ export default function CampaignSettingsPage() {
   const { client, user } = useAuth();
   const { success, error: toastError } = useToast();
   const { t } = useLanguage();
-  const clientId = client?.id || "client-1";
+  const clientId = client?.id || user?.client_id || "";
 
   const [formData, setFormData] = useState({
-    candidate_name: client?.candidate_name || "Rajesh Sharma",
-    name: client?.name || "Sharma Campaign HQ",
-    mobile: client?.mobile || "+91 98201 12345",
-    email: client?.email || "rajesh.sharma@chunavsetu.com",
-    campaign_name: client?.campaign_name || "Central Assembly 2026",
-    location: client?.location || "Lucknow Central (AC-174)",
+    candidate_name: client?.candidate_name || "",
+    name: client?.name || "",
+    mobile: client?.mobile || "",
+    email: client?.email || "",
+    campaign_name: client?.campaign_name || "",
+    location: client?.location || "",
     election_type: client?.election_type || "Vidhan Sabha",
     poster_url: client?.poster_url || "",
     poster_alt: client?.poster_alt || "",
   });
+
+  useEffect(() => {
+    if (client) {
+      setFormData({
+        candidate_name: client.candidate_name || "",
+        name: client.name || "",
+        mobile: client.mobile || "",
+        email: client.email || "",
+        campaign_name: client.campaign_name || "",
+        location: client.location || "",
+        election_type: client.election_type || "Vidhan Sabha",
+        poster_url: client.poster_url || "",
+        poster_alt: client.poster_alt || "",
+      });
+    }
+  }, [client]);
 
   const [posterFile, setPosterFile] = useState<File | null>(null);
   const [isUploadingPoster, setIsUploadingPoster] = useState(false);

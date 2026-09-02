@@ -1,11 +1,8 @@
 import crypto from "crypto";
 import { SecurityUser } from "./types";
-import { INITIAL_PROFILES } from "../store/mock-data";
+import { createAdminClient } from "../supabase/admin";
 
-// Default internal security secret
-const AUTH_SECRET = process.env.AUTH_SECRET || "chunav-setu-enterprise-secret-key-2026-prod-hardened-signature";
-
-// In-memory failed login tracking for lockout
+// In-memory failed login tracking for lockout defense
 interface FailedAttemptRecord {
   count: number;
   lastAttempt: number;
@@ -13,44 +10,20 @@ interface FailedAttemptRecord {
 }
 
 const failedAttempts = new Map<string, FailedAttemptRecord>();
-const passwordResetTokens = new Map<string, { email: string; expiresAt: number; used: boolean }>();
-
-// Pre-seeded hashed credentials map
-// Password for all seeded demo users is: "Chunav@2026"
-const PASSWORD_SALT = "chunav_setu_secure_salt_2026";
-const DEMO_PASSWORD_HASH = hashPasswordWithSalt("Chunav@2026", PASSWORD_SALT);
-
-export function hashPasswordWithSalt(password: string, salt: string): string {
-  return crypto.pbkdf2Sync(password, salt, 100000, 64, "sha256").toString("hex");
-}
-
-export function hashPassword(password: string): { hash: string; salt: string } {
-  const salt = crypto.randomBytes(16).toString("hex");
-  const hash = hashPasswordWithSalt(password, salt);
-  return { hash, salt };
-}
-
-export function verifyPassword(password: string, storedHash: string, salt: string): boolean {
-  try {
-    const computedHash = hashPasswordWithSalt(password, salt);
-    return crypto.timingSafeEqual(Buffer.from(computedHash, "hex"), Buffer.from(storedHash, "hex"));
-  } catch {
-    return false;
-  }
-}
 
 /**
- * Validates user login credentials server-side with account lockout defense.
+ * Authenticates user credentials against Supabase Auth with account lockout defense.
+ * Supports Username or Email login.
  */
 export async function authenticateCredentials(
-  email: string,
+  identifier: string,
   password?: string
 ): Promise<{ success: boolean; user?: SecurityUser; error?: string; retryAfterSeconds?: number }> {
-  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedIdentifier = identifier.trim().toLowerCase();
   const now = Date.now();
 
-  // Check account lockout
-  const attempt = failedAttempts.get(normalizedEmail);
+  // 1. Check account lockout
+  const attempt = failedAttempts.get(normalizedIdentifier);
   if (attempt && attempt.lockedUntil > now) {
     const retryAfterSeconds = Math.ceil((attempt.lockedUntil - now) / 1000);
     return {
@@ -60,44 +33,98 @@ export async function authenticateCredentials(
     };
   }
 
-  // Find user profile
-  const profile = INITIAL_PROFILES.find((p) => p.email.toLowerCase() === normalizedEmail);
-  if (!profile) {
-    recordFailedAttempt(normalizedEmail);
-    return { success: false, error: "Invalid credentials." };
+  if (!password || password.trim().length === 0) {
+    return { success: false, error: "Password is required." };
   }
 
-  if (profile.status !== "active") {
-    return { success: false, error: "Account is inactive or suspended. Contact Super Admin." };
-  }
+  const admin = createAdminClient();
 
-  // If password is provided, verify it strictly against hashed credentials
-  if (password && password.trim().length > 0) {
-    const isValid = verifyPassword(password, DEMO_PASSWORD_HASH, PASSWORD_SALT);
-    if (!isValid) {
-      recordFailedAttempt(normalizedEmail);
-      return { success: false, error: "Invalid credentials." };
+  try {
+    // 2. Resolve Identifier: Check if user entered username or email
+    let authEmail = normalizedIdentifier;
+    let profileRecord: any = null;
+
+    if (!normalizedIdentifier.includes("@")) {
+      // Lookup profile by username
+      const { data: profileByUsername } = await admin
+        .from("profiles")
+        .select("*")
+        .ilike("username", normalizedIdentifier)
+        .single();
+
+      if (profileByUsername) {
+        authEmail = profileByUsername.email;
+        profileRecord = profileByUsername;
+      }
     }
+
+    if (!profileRecord) {
+      const { data: profileByEmail } = await admin
+        .from("profiles")
+        .select("*")
+        .eq("email", authEmail)
+        .single();
+
+      profileRecord = profileByEmail;
+    }
+
+    // 3. Verify profile exists and is active
+    if (profileRecord && profileRecord.status !== "active") {
+      return {
+        success: false,
+        error: `Your account is ${profileRecord.status}. Please contact your administrator.`,
+      };
+    }
+
+    // 4. Authenticate via Supabase Auth
+    const { data: authData, error: authErr } = await admin.auth.signInWithPassword({
+      email: authEmail,
+      password: password,
+    });
+
+    if (authErr || !authData.user) {
+      recordFailedAttempt(normalizedIdentifier);
+      return {
+        success: false,
+        error: "Invalid username/email or password.",
+      };
+    }
+
+    // Clear failed attempts on successful authentication
+    failedAttempts.delete(normalizedIdentifier);
+
+    // 5. Build verified SecurityUser object
+    const userId = authData.user.id;
+    let userRole = (authData.user.user_metadata?.role || profileRecord?.role || "volunteer") as any;
+    let clientId = authData.user.user_metadata?.client_id || profileRecord?.client_id || null;
+    let fullName = authData.user.user_metadata?.full_name || profileRecord?.full_name || authEmail.split("@")[0];
+
+    // If profile exists in DB, ensure most up-to-date fields
+    if (profileRecord) {
+      userRole = profileRecord.role;
+      clientId = profileRecord.client_id;
+      fullName = profileRecord.full_name;
+    }
+
+    const securityUser: SecurityUser = {
+      id: userId,
+      email: authEmail,
+      full_name: fullName,
+      role: userRole,
+      client_id: clientId || undefined,
+      status: (profileRecord?.status || "active") as any,
+    };
+
+    return { success: true, user: securityUser };
+  } catch (err: any) {
+    console.error("Authentication error:", err);
+    return { success: false, error: "Authentication service error. Please try again." };
   }
-
-  // Clear failed attempts on successful auth
-  failedAttempts.delete(normalizedEmail);
-
-  const securityUser: SecurityUser = {
-    id: profile.id,
-    email: profile.email,
-    full_name: profile.full_name,
-    role: profile.role,
-    client_id: profile.client_id,
-    status: profile.status,
-  };
-
-  return { success: true, user: securityUser };
 }
 
-function recordFailedAttempt(email: string): void {
+function recordFailedAttempt(identifier: string): void {
   const now = Date.now();
-  const record = failedAttempts.get(email) || { count: 0, lastAttempt: now, lockedUntil: 0 };
+  const record = failedAttempts.get(identifier) || { count: 0, lastAttempt: now, lockedUntil: 0 };
   record.count += 1;
   record.lastAttempt = now;
 
@@ -106,31 +133,5 @@ function recordFailedAttempt(email: string): void {
     record.lockedUntil = now + 5 * 60 * 1000;
   }
 
-  failedAttempts.set(email, record);
-}
-
-/**
- * Creates a cryptographically random, single-use password reset token.
- */
-export function generatePasswordResetToken(email: string): string {
-  const token = crypto.randomBytes(32).toString("hex");
-  const expiresAt = Date.now() + 15 * 60 * 1000; // 15 minutes
-  passwordResetTokens.set(token, { email: email.toLowerCase(), expiresAt, used: false });
-  return token;
-}
-
-/**
- * Validates and consumes a password reset token.
- */
-export function consumePasswordResetToken(token: string): { valid: boolean; email?: string } {
-  const record = passwordResetTokens.get(token);
-  if (!record) return { valid: false };
-  if (record.used || record.expiresAt < Date.now()) {
-    passwordResetTokens.delete(token);
-    return { valid: false };
-  }
-
-  record.used = true;
-  passwordResetTokens.delete(token);
-  return { valid: true, email: record.email };
+  failedAttempts.set(identifier, record);
 }

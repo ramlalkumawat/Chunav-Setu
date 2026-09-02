@@ -29,8 +29,8 @@ export default function VolunteerDashboardPage() {
   const { client, volunteer, user } = useAuth();
   const { t, language } = useLanguage();
   const isHindi = language === "hi";
-  const clientId = client?.id || "client-1";
-  const volunteerId = volunteer?.id || user?.id || "vol-1";
+  const clientId = client?.id || user?.client_id || "";
+  const volunteerId = volunteer?.id || user?.id || "";
 
   const [stats, setStats] = useState<any>(null);
   const [commStats, setCommStats] = useState<any>(null);
@@ -38,6 +38,7 @@ export default function VolunteerDashboardPage() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
 
   const loadDashboard = () => {
+    if (!clientId) return;
     setStats(dbService.getVolunteerDashboardStats(clientId, volunteerId));
     setCommStats(dbService.getCommunicationSummary(clientId, volunteerId));
   };
@@ -47,7 +48,7 @@ export default function VolunteerDashboardPage() {
   }, [clientId, volunteerId]);
 
   useEffect(() => {
-    if (!search.trim()) {
+    if (!clientId || !search.trim()) {
       setSearchResults([]);
       return;
     }
@@ -58,11 +59,19 @@ export default function VolunteerDashboardPage() {
     setSearchResults(res.data);
   }, [search, clientId, volunteerId]);
 
-  if (!stats) return null;
+  if (!clientId || !stats) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-sm text-[#6C757D]">
+          {isHindi ? "फील्ड डेटा लोड हो रहा है..." : "Loading field dashboard..."}
+        </p>
+      </div>
+    );
+  }
 
   const volunteerName = volunteer?.name || user?.full_name || "Field Volunteer";
-  const assignedBoothName = volunteer?.assigned_booth_name || stats.volunteer?.assigned_booth_name || "Booth 101";
-  const assignedAreaName = volunteer?.assigned_area_name || stats.volunteer?.assigned_area_name || "Central Sector";
+  const assignedBoothName = volunteer?.assigned_booth_name || (client ? `${client.campaign_name} (All Booths)` : "All Booths");
+  const assignedAreaName = volunteer?.assigned_area_name || (client?.location || "Constituency");
 
   return (
     <div className="space-y-4 max-w-2xl mx-auto pb-10 w-full overflow-hidden">

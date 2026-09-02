@@ -41,7 +41,7 @@ import {
 } from "lucide-react";
 
 export default function AdminClientsPage() {
-  const { user, switchRole } = useAuth();
+  const { user } = useAuth();
   const { success, error: toastError } = useToast();
   const { t, language } = useLanguage();
   const isHindi = language === "hi";
@@ -393,7 +393,7 @@ export default function AdminClientsPage() {
 
   // Voter List Upload Handlers (Section 6 & 8)
   const handleOpenUploadModal = (client?: Client) => {
-    setUploadTargetClientId(client ? client.id : clients[0]?.id || "client-1");
+    setUploadTargetClientId(client ? client.id : clients[0]?.id || "");
     setCsvContent("");
     setUploadFileName("");
     setRawUploadFile(null);
@@ -418,7 +418,8 @@ export default function AdminClientsPage() {
   };
 
   const processUploadCsv = (text: string) => {
-    const existingVoters = dbService.getVoters(uploadTargetClientId || "client-1", { pageSize: 10000 }).data;
+    const targetId = uploadTargetClientId || clients[0]?.id || "";
+    const existingVoters = targetId ? dbService.getVoters(targetId, { pageSize: 10000 }).data : [];
     const existingCards = new Set(existingVoters.map((v) => v.voter_id_card.trim().toUpperCase()));
     const result = parseVoterCsv(text, existingCards);
     setUploadParseResult(result);
@@ -647,13 +648,6 @@ UP/48/281/001421,Duplicate Existing Voter,+91 99999 99999,40,Male,Test,uncontact
                         title={client.status === "active" ? "Deactivate" : "Activate"}
                       >
                         <Power className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => switchRole("client_admin", client.id)}
-                        className="p-1.5 rounded bg-[#F1ECEF] text-[#714B67] hover:bg-[#714B67] hover:text-white transition-colors"
-                        title="Enter Candidate Workspace"
-                      >
-                        <ArrowUpRight className="w-4 h-4" />
                       </button>
                     </div>
                   </td>
@@ -1243,15 +1237,6 @@ UP/48/281/001421,Duplicate Existing Voter,+91 99999 99999,40,Male,Test,uncontact
                   Reset Password
                 </Button>
               </div>
-
-              <Button
-                variant="primary"
-                size="sm"
-                leftIcon={<ArrowUpRight className="w-4 h-4" />}
-                onClick={() => switchRole("client_admin", viewingClient.id)}
-              >
-                Login to Candidate Workspace
-              </Button>
             </div>
           </div>
         )}

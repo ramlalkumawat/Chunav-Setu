@@ -3,7 +3,7 @@ import { getRequestSession } from "@/lib/security/session";
 import { requirePermission } from "@/lib/security/rbac";
 import { validateTenantAccess } from "@/lib/security/tenant";
 import { sanitizeString, isValidVoterCard, isValidMobile } from "@/lib/security/sanitizer";
-import { dbService } from "@/lib/store/data-service";
+import { db } from "@/lib/supabase/database-service";
 
 export async function GET(req: NextRequest) {
   const session = getRequestSession(req);
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
   const page = parseInt(searchParams.get("page") || "1", 10);
   const pageSize = parseInt(searchParams.get("pageSize") || "12", 10);
 
-  const result = dbService.getVoters(effectiveClientId, {
+  const result = await db.getVoters(effectiveClientId, {
     search,
     boothId,
     areaId,
@@ -45,6 +45,8 @@ export async function POST(req: NextRequest) {
 
   const tenantCheck = validateTenantAccess(session!);
   if (!tenantCheck.authorized) return tenantCheck.errorResponse!;
+
+  const effectiveClientId = tenantCheck.effectiveClientId!;
 
   try {
     const body = await req.json();
@@ -72,9 +74,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid mobile number format." }, { status: 400 });
     }
 
-    const created = dbService.createVoter({
-      client_id: tenantCheck.effectiveClientId!,
-      campaign_id: body.campaign_id || "campaign-1",
+    // Get default campaign if not provided
+    let campaignId = body.campaign_id;
+    if (!campaignId) {
+      const campaigns = await db.getCampaigns(effectiveClientId);
+      campaignId = campaigns[0]?.id;
+    }
+
+    const created = await db.createVoter({
+      client_id: effectiveClientId,
+      campaign_id: campaignId,
       voter_id_card: voterIdCard,
       name,
       mobile,
@@ -88,17 +97,21 @@ export async function POST(req: NextRequest) {
       notes,
     });
 
-    dbService.logAction(
+    if (!created) {
+      return NextResponse.json({ error: "Failed to create voter record in database." }, { status: 500 });
+    }
+
+    await db.logAuditEvent(
       { id: session!.userId, name: session!.fullName },
       "VOTER_CREATED",
       "Voter",
       created.id,
       { voter_id_card: voterIdCard, name },
-      tenantCheck.effectiveClientId
+      effectiveClientId
     );
 
     return NextResponse.json(created, { status: 201 });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Create voter API error:", err);
     return NextResponse.json({ error: "Failed to create voter record." }, { status: 500 });
   }

@@ -12,7 +12,7 @@ import { formatDateTime } from "@/lib/utils";
 export default function FieldWorkPage() {
   const { client } = useAuth();
   const { t } = useLanguage();
-  const clientId = client?.id || "client-1";
+  const clientId = client?.id || "";
 
   const [activities, setActivities] = useState<FieldActivity[]>([]);
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);

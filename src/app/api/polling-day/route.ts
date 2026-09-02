@@ -3,7 +3,7 @@ import { getRequestSession } from "@/lib/security/session";
 import { requirePermission } from "@/lib/security/rbac";
 import { validateTenantAccess } from "@/lib/security/tenant";
 import { sanitizeString } from "@/lib/security/sanitizer";
-import { dbService } from "@/lib/store/data-service";
+import { db } from "@/lib/supabase/database-service";
 
 export async function GET(req: NextRequest) {
   const session = getRequestSession(req);
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   if (!tenantCheck.authorized) return tenantCheck.errorResponse!;
 
   const effectiveClientId = tenantCheck.effectiveClientId!;
-  const stats = dbService.getPollingDayDashboardStats(effectiveClientId);
+  const stats = await db.getPollingDayDashboardStats(effectiveClientId);
 
   return NextResponse.json(stats);
 }
@@ -34,46 +34,26 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // Check if locking action
-    if (body.action === "lock") {
-      dbService.lockPollingDay(effectiveClientId);
-      dbService.logAction(
-        { id: session!.userId, name: session!.fullName },
-        "POLLING_DAY_LOCKED",
-        "PollingDay",
-        undefined,
-        { status: "completed" },
-        effectiveClientId
-      );
-      return NextResponse.json({ success: true, message: "Polling day operations locked successfully." });
+    // Check if status update for voter turnout
+    if (body.action === "update_voter_status") {
+      const updated = await db.recordPollingStatusUpdate(effectiveClientId, {
+        polling_day_id: body.polling_day_id,
+        campaign_id: body.campaign_id || "camp-1",
+        voter_id: body.voter_id,
+        booth_id: body.booth_id,
+        volunteer_id: session!.userId,
+        status: body.status,
+        updated_by: session!.fullName,
+        updated_by_role: session!.role,
+        note: body.note ? sanitizeString(body.note) : undefined,
+      });
+
+      return NextResponse.json(updated);
     }
 
-    const title = sanitizeString(body.title) || "General Assembly Election Polling Day";
-    const pollingDate = sanitizeString(body.polling_date) || "12 December 2026";
-    const startTime = sanitizeString(body.start_time) || "07:00 AM";
-    const endTime = sanitizeString(body.end_time) || "06:00 PM";
-    const status = ["upcoming", "active", "completed"].includes(body.status) ? body.status : "active";
-
-    const configured = dbService.configurePollingDay(effectiveClientId, {
-      title,
-      polling_date: pollingDate,
-      start_time: startTime,
-      end_time: endTime,
-      status,
-    });
-
-    dbService.logAction(
-      { id: session!.userId, name: session!.fullName },
-      "POLLING_DAY_CONFIGURED",
-      "PollingDay",
-      configured.id,
-      { title, pollingDate, status },
-      effectiveClientId
-    );
-
-    return NextResponse.json(configured);
-  } catch (err) {
-    console.error("Configure polling day API error:", err);
-    return NextResponse.json({ error: "Failed to configure polling day." }, { status: 500 });
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    console.error("Polling day action error:", err);
+    return NextResponse.json({ error: "Failed to process polling day operation." }, { status: 500 });
   }
 }

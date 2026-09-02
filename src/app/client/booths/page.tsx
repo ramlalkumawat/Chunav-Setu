@@ -23,7 +23,7 @@ export default function BoothsPage() {
   const { client, user } = useAuth();
   const { success, error: toastError } = useToast();
   const { t } = useLanguage();
-  const clientId = client?.id || "client-1";
+  const clientId = client?.id || user?.client_id || "";
 
   const [booths, setBooths] = useState<Booth[]>([]);
   const [areas, setAreas] = useState<Area[]>([]);

@@ -25,7 +25,7 @@ export default function ReportsPage() {
   const { client } = useAuth();
   const { success } = useToast();
   const { t } = useLanguage();
-  const clientId = client?.id || "client-1";
+  const clientId = client?.id || "";
 
   const [booths, setBooths] = useState<any[]>([]);
   const [volunteers, setVolunteers] = useState<any[]>([]);

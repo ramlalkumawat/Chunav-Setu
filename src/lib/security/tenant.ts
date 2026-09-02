@@ -14,7 +14,7 @@ export function validateTenantAccess(
   if (session.role === "super_admin") {
     return {
       authorized: true,
-      effectiveClientId: targetClientId || session.clientId || "client-1",
+      effectiveClientId: targetClientId || session.clientId || undefined,
     };
   }
 

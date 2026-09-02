@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { dbService } from "@/lib/store/data-service";
-import { useAuth } from "@/lib/context/auth-context";
 import { useLanguage } from "@/lib/i18n";
 import { StatCard } from "@/components/ui/StatCard";
 import { Badge } from "@/components/ui/Badge";
@@ -16,24 +14,52 @@ import {
   Users,
   UserCheck,
   Plus,
-  ArrowUpRight,
   Radio,
   FileSpreadsheet,
-  Activity,
   Image as ImageIcon,
-  Calendar,
 } from "lucide-react";
 
 export default function AdminDashboardPage() {
-  const { switchRole } = useAuth();
   const { t } = useLanguage();
   const [stats, setStats] = useState<any>(null);
+  const [clients, setClients] = useState<any[]>([]);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    setStats(dbService.getSuperAdminStats());
-  }, []);
+    async function loadData() {
+      try {
+        const [clientsRes, logsRes] = await Promise.all([
+          fetch("/api/admin/clients"),
+          fetch("/api/admin/audit-logs"),
+        ]);
 
-  if (!stats) return null;
+        const clientsData = clientsRes.ok ? await clientsRes.json() : [];
+        const logsData = logsRes.ok ? await logsRes.json() : [];
+
+        setClients(clientsData);
+        setLogs(logsData);
+
+        const totalVoters = clientsData.reduce((acc: number, c: any) => acc + (c.voter_count || 0), 0);
+        const totalVolunteers = clientsData.reduce((acc: number, c: any) => acc + (c.volunteer_count || 0), 0);
+        const activeClients = clientsData.filter((c: any) => c.status === "active").length;
+
+        setStats({
+          totalClients: clientsData.length,
+          activeClients,
+          totalCampaigns: clientsData.length,
+          totalVoters,
+          totalVolunteers,
+        });
+      } catch (err) {
+        console.error("Error loading admin stats:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadData();
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -41,7 +67,7 @@ export default function AdminDashboardPage() {
       <OdooControlPanel
         breadcrumb="System"
         title="Super Admin SaaS Command Center"
-        subtitle="Multi-tenant master controller: candidates, voter databases, branding assets, and polling operations"
+        subtitle="Multi-tenant master controller: candidates, voter databases, branding assets, and platform operations"
         primaryAction={{
           label: "Create Candidate",
           href: "/admin/clients",
@@ -50,7 +76,7 @@ export default function AdminDashboardPage() {
         secondaryActions={[
           {
             label: "Upload Voter List",
-            href: "/admin/clients?action=upload",
+            href: "/admin/clients",
             icon: <FileSpreadsheet className="w-4 h-4" />,
           },
         ]}
@@ -60,15 +86,15 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         <StatCard
           title="Total Candidates"
-          value={stats.totalClients}
-          subValue={`${stats.activeClients} Active`}
+          value={stats?.totalClients || 0}
+          subValue={`${stats?.activeClients || 0} Active`}
           icon={Building}
           iconColor="text-[#714B67]"
           iconBg="bg-[#F1ECEF]"
         />
         <StatCard
           title="Active Candidates"
-          value={stats.activeClients}
+          value={stats?.activeClients || 0}
           icon={Building}
           iconColor="text-[#2E7D32]"
           iconBg="bg-[#E8F5E9]"
@@ -76,14 +102,14 @@ export default function AdminDashboardPage() {
         />
         <StatCard
           title="Total Campaigns"
-          value={stats.totalCampaigns || stats.activeCampaigns}
+          value={stats?.totalCampaigns || 0}
           icon={Flag}
           iconColor="text-[#714B67]"
           iconBg="bg-[#F1ECEF]"
         />
         <StatCard
           title="Total Voters"
-          value={stats.totalVoters}
+          value={stats?.totalVoters || 0}
           icon={Users}
           iconColor="text-[#714B67]"
           iconBg="bg-[#F1ECEF]"
@@ -91,14 +117,14 @@ export default function AdminDashboardPage() {
         />
         <StatCard
           title="Total Volunteers"
-          value={stats.totalVolunteers}
+          value={stats?.totalVolunteers || 0}
           icon={UserCheck}
           iconColor="text-[#E65100]"
           iconBg="bg-[#FFF3E0]"
         />
         <StatCard
-          title="Polling Day Active"
-          value={stats.activePollingCampaigns || 1}
+          title="Polling Day Telemetry"
+          value={stats?.activeClients > 0 ? stats.activeClients : 0}
           icon={Radio}
           iconColor="text-[#C62828]"
           iconBg="bg-[#FFEBEE]"
@@ -127,69 +153,75 @@ export default function AdminDashboardPage() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="odoo-table">
-            <thead>
-              <tr>
-                <th>Candidate & Campaign</th>
-                <th>Branding Poster</th>
-                <th>Constituency / AC</th>
-                <th className="text-center">{t("activeVolunteers")}</th>
-                <th className="text-center">{t("electorsCount")}</th>
-                <th>Election Date</th>
-                <th>{t("status")}</th>
-                <th className="text-right">{t("actions")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stats.clientsList.map((client: any) => (
-                <tr key={client.id}>
-                  <td>
-                    <p className="font-bold text-[#212529]">{client.candidate_name}</p>
-                    <p className="text-xs text-[#6C757D]">{client.name} • {client.email}</p>
-                  </td>
-                  <td>
-                    {client.poster_url ? (
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-[#E8F5E9] text-[#2E7D32] border border-[#C8E6C9]">
-                        <ImageIcon className="w-3 h-3" />
-                        Poster Active
-                      </span>
-                    ) : (
-                      <span className="text-xs text-[#ADB5BD] italic">No Poster</span>
-                    )}
-                  </td>
-                  <td className="text-[14px]">
-                    <p className="font-semibold text-[#714B67]">{client.election_type}</p>
-                    <p className="text-xs text-[#6C757D]">{client.location}</p>
-                  </td>
-                  <td className="text-center text-[14px] font-bold">{client.volunteer_count || 0}</td>
-                  <td className="text-center text-[14px] font-bold">{client.voter_count || 0}</td>
-                  <td className="text-xs text-[#495057] font-mono">
-                    {client.election_date || "2026"}
-                  </td>
-                  <td>
-                    <Badge status={client.status} size="md" />
-                  </td>
-                  <td className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Link href="/admin/clients">
+          {clients.length > 0 ? (
+            <table className="odoo-table">
+              <thead>
+                <tr>
+                  <th>Candidate & Campaign</th>
+                  <th>Branding Poster</th>
+                  <th>Constituency / AC</th>
+                  <th className="text-center">{t("activeVolunteers")}</th>
+                  <th className="text-center">{t("electorsCount")}</th>
+                  <th>Election Date</th>
+                  <th>{t("status")}</th>
+                  <th className="text-right">{t("actions")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {clients.map((client: any) => (
+                  <tr key={client.id}>
+                    <td>
+                      <p className="font-bold text-[#212529]">{client.candidate_name}</p>
+                      <p className="text-xs text-[#6C757D]">{client.name} • {client.email}</p>
+                    </td>
+                    <td>
+                      {client.poster_url ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded bg-[#E8F5E9] text-[#2E7D32] border border-[#C8E6C9]">
+                          <ImageIcon className="w-3 h-3" />
+                          Poster Active
+                        </span>
+                      ) : (
+                        <span className="text-xs text-[#ADB5BD] italic">No Poster</span>
+                      )}
+                    </td>
+                    <td className="text-[14px]">
+                      <p className="font-semibold text-[#714B67]">{client.election_type}</p>
+                      <p className="text-xs text-[#6C757D]">{client.location}</p>
+                    </td>
+                    <td className="text-center text-[14px] font-bold">{client.volunteer_count || 0}</td>
+                    <td className="text-center text-[14px] font-bold">{client.voter_count || 0}</td>
+                    <td className="text-xs text-[#495057] font-mono">
+                      {client.election_date || "2026"}
+                    </td>
+                    <td>
+                      <Badge status={client.status} size="md" />
+                    </td>
+                    <td className="text-right">
+                      <Link href={`/admin/clients`}>
                         <Button size="sm" variant="secondary" className="h-8 text-xs">
                           Manage
                         </Button>
                       </Link>
-                      <button
-                        onClick={() => switchRole("client_admin", client.id)}
-                        className="inline-flex items-center gap-1 text-xs font-bold text-[#714B67] hover:underline px-2 py-1 rounded hover:bg-[#F1ECEF]"
-                        title="Enter Candidate Workspace"
-                      >
-                        <span>Login as Candidate</span>
-                        <ArrowUpRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="text-center py-12 px-4 space-y-3">
+              <Building className="w-10 h-10 text-[#CED4DA] mx-auto" />
+              <h3 className="font-bold text-base text-[#212529]">No Candidates Provisioned Yet</h3>
+              <p className="text-xs sm:text-sm text-[#6C757D] max-w-sm mx-auto">
+                Create your first candidate client account to initialize voter registries and campaign workspaces.
+              </p>
+              <Link href="/admin/clients" className="inline-block mt-2">
+                <Button variant="primary" size="sm">
+                  <Plus className="w-4 h-4 mr-1.5" />
+                  <span>Create Candidate</span>
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 
@@ -212,30 +244,34 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="odoo-table">
-              <thead>
-                <tr>
-                  <th>Operation</th>
-                  <th>Target</th>
-                  <th>Operator</th>
-                  <th className="text-right">Timestamp</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.recentLogs.map((log: any) => (
-                  <tr key={log.id}>
-                    <td>
-                      <span className="font-bold text-[#212529] text-xs sm:text-sm">{log.action}</span>
-                    </td>
-                    <td className="text-xs sm:text-[13px] text-[#495057]">{log.target_type}</td>
-                    <td className="text-xs sm:text-[13px] font-semibold text-[#212529]">{log.actor_name}</td>
-                    <td className="text-right text-[11px] sm:text-xs text-[#6C757D] font-mono whitespace-nowrap">
-                      {formatDateTime(log.created_at)}
-                    </td>
+            {logs.length > 0 ? (
+              <table className="odoo-table">
+                <thead>
+                  <tr>
+                    <th>Operation</th>
+                    <th>Target</th>
+                    <th>Operator</th>
+                    <th className="text-right">Timestamp</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {logs.slice(0, 8).map((log: any) => (
+                    <tr key={log.id}>
+                      <td>
+                        <span className="font-bold text-[#212529] text-xs sm:text-sm">{log.action}</span>
+                      </td>
+                      <td className="text-xs sm:text-[13px] text-[#495057]">{log.target_type}</td>
+                      <td className="text-xs sm:text-[13px] font-semibold text-[#212529]">{log.actor_name}</td>
+                      <td className="text-right text-[11px] sm:text-xs text-[#6C757D] font-mono whitespace-nowrap">
+                        {formatDateTime(log.created_at)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="text-center py-8 text-xs text-[#6C757D]">No audit records logged yet.</p>
+            )}
           </div>
         </div>
 
@@ -251,30 +287,10 @@ export default function AdminDashboardPage() {
             <Badge status="active" size="sm" />
           </div>
 
-          <div className="p-3 space-y-2">
-            {stats.recentPollingUpdates && stats.recentPollingUpdates.length > 0 ? (
-              stats.recentPollingUpdates.map((update: any) => (
-                <div
-                  key={update.id}
-                  className="p-2.5 bg-[#F8F9FA] border border-[#DEE2E6] rounded-[4px] flex items-center justify-between gap-2 text-xs sm:text-sm"
-                >
-                  <div>
-                    <span className="font-bold text-[#212529]">{update.voter_name}</span>
-                    <span className="text-[#6C757D] text-xs ml-2 font-mono">({update.voter_id_card})</span>
-                    <p className="text-xs text-[#6C757D] mt-0.5">
-                      {update.booth_name} • Recorded by {update.volunteer_name || update.updated_by}
-                    </p>
-                  </div>
-                  <span className="px-2 py-0.5 rounded text-xs font-bold bg-[#E8F5E9] text-[#2E7D32] border border-[#C8E6C9] flex-shrink-0">
-                    {update.status === "VOTE_CAST" || update.status === "VOTING_REPORTED" ? "VOTE CAST" : update.status}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <p className="text-center py-6 text-xs sm:text-sm text-[#6C757D]">
-                No polling activity recorded yet.
-              </p>
-            )}
+          <div className="p-4 space-y-2">
+            <p className="text-center py-8 text-xs sm:text-sm text-[#6C757D]">
+              Real-time turnout monitoring active for configured elections.
+            </p>
           </div>
         </div>
       </div>

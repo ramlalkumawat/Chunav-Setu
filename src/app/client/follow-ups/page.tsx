@@ -21,7 +21,7 @@ export default function FollowUpsPage() {
   const { client, user } = useAuth();
   const { success } = useToast();
   const { t } = useLanguage();
-  const clientId = client?.id || "client-1";
+  const clientId = client?.id || user?.client_id || "";
 
   const [followUps, setFollowUps] = useState<FollowUp[]>([]);
   const [statusFilter, setStatusFilter] = useState("pending");

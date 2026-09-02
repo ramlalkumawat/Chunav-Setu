@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestSession } from "@/lib/security/session";
-import { dbService } from "@/lib/store/data-service";
+import { db } from "@/lib/supabase/database-service";
 
 export async function GET(req: NextRequest) {
   const session = getRequestSession(req);
@@ -9,8 +9,8 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ authenticated: false, session: null }, { status: 401 });
   }
 
-  const client = session.clientId ? dbService.getClientById(session.clientId) : null;
-  const volunteers = session.clientId ? dbService.getVolunteers(session.clientId) : [];
+  const client = session.clientId ? await db.getClientById(session.clientId) : null;
+  const volunteers = session.clientId ? await db.getVolunteers(session.clientId) : [];
   const volunteer = volunteers.find((v) => v.user_id === session.userId || v.email === session.email) || null;
 
   return NextResponse.json({

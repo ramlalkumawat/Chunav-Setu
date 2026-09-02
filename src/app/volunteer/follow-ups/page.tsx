@@ -12,11 +12,11 @@ import { formatDate } from "@/lib/utils";
 import { Phone, Calendar, MapPin } from "lucide-react";
 
 export default function VolunteerFollowUpsPage() {
-  const { client, volunteer } = useAuth();
+  const { client, volunteer, user } = useAuth();
   const { success } = useToast();
   const { t } = useLanguage();
-  const clientId = client?.id || "client-1";
-  const volunteerId = volunteer?.id || "vol-1";
+  const clientId = client?.id || user?.client_id || "";
+  const volunteerId = volunteer?.id || user?.id || "";
 
   const [followUps, setFollowUps] = useState<FollowUp[]>([]);
 

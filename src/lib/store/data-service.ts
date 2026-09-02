@@ -172,14 +172,6 @@ class DataService {
     const volunteers = this.getItem<Volunteer[]>(STORAGE_KEYS.VOLUNTEERS, INITIAL_VOLUNTEERS);
     const booths = this.getItem<Booth[]>(STORAGE_KEYS.BOOTHS, INITIAL_BOOTHS);
 
-    // Auto-sync client-1 if on legacy unsplash placeholder
-    const c1 = clients.find((c) => c.id === "client-1");
-    if (c1 && (c1.poster_url?.includes("unsplash.com/photo-1540910419892") || !c1.poster_url)) {
-      c1.poster_url = "/posters/demo-candidate-1.png";
-      c1.poster_alt = "डेमो कैंडिडेट 1 (Rajesh Sharma) - चुनाव प्रचार पोस्टर";
-      this.setItem(STORAGE_KEYS.CLIENTS, clients);
-    }
-
     return clients.map((c) => ({
       ...c,
       voter_count: voters.filter((v) => v.client_id === c.id).length,
@@ -1209,10 +1201,8 @@ class DataService {
 
     let list = voters;
 
-    // Strict Volunteer Scoping: If volunteer context, ONLY show voters for their assigned booth
-    if (volunteer && volunteer.assigned_booth_id) {
-      list = list.filter((v) => v.booth_id === volunteer.assigned_booth_id);
-    } else if (filters?.boothId && filters.boothId !== "all") {
+    // Campaign & Volunteer Scope: All booths of the tenant are accessible, with optional booth filter
+    if (filters?.boothId && filters.boothId !== "all") {
       list = list.filter((v) => v.booth_id === filters.boothId);
     }
 

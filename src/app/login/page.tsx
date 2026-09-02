@@ -8,41 +8,58 @@ import { useLanguage } from "@/lib/i18n";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Footer } from "@/components/layout/Footer";
-import { DemoSwitcher } from "@/components/layout/DemoSwitcher";
-import { ShieldCheck, UserCheck, Smartphone, Users, Lock, Mail, ArrowRight } from "lucide-react";
+import { Lock, User, ShieldCheck } from "lucide-react";
 
 export default function LoginPage() {
-  const { login, quickLoginDemo, isLoading } = useAuth();
+  const { login, isLoading } = useAuth();
   const { success, error: toastError } = useToast();
   const { language, setLanguage, t } = useLanguage();
+  const isHindi = language === "hi";
 
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) {
-      toastError("Email required", "Please enter your registered email address.");
+    if (!identifier.trim()) {
+      toastError(
+        isHindi ? "यूज़रनेम आवश्यक है" : "Username required",
+        isHindi ? "कृपया अपना यूज़रनेम या ईमेल दर्ज करें।" : "Please enter your registered username or email."
+      );
       return;
     }
+    if (!password) {
+      toastError(
+        isHindi ? "पासवर्ड आवश्यक है" : "Password required",
+        isHindi ? "कृपया अपना पासवर्ड दर्ज करें।" : "Please enter your password."
+      );
+      return;
+    }
+
     setIsSubmitting(true);
-    const ok = await login(email);
+    const result = await login(identifier.trim(), password);
     setIsSubmitting(false);
-    if (ok) {
-      success("Authenticated", `Welcome back!`);
+
+    if (result.success) {
+      success(
+        isHindi ? "सफलतापूर्वक लॉगिन" : "Authenticated",
+        isHindi ? "चुनाव सेतु में आपका स्वागत है!" : "Welcome to Chunav Setu!"
+      );
     } else {
-      toastError("Authentication failed", "Could not verify credentials. Use one-click role below.");
+      toastError(
+        isHindi ? "लॉगिन विफल" : "Authentication Failed",
+        result.error || (isHindi ? "अमान्य क्रेडेंशियल्स।" : "Invalid username/email or password.")
+      );
     }
   };
 
   return (
     <div className="min-h-screen bg-[#F7F7F7] flex flex-col justify-between w-full max-w-full overflow-x-hidden">
-      <DemoSwitcher />
-
-      <div className="flex-1 flex flex-col justify-center py-8 sm:py-12 px-3 sm:px-6 lg:px-8 w-full max-w-full">
+      <div className="flex-1 flex flex-col justify-center py-8 sm:py-16 px-4 sm:px-6 lg:px-8 w-full max-w-full">
         <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-          <div className="flex justify-end mb-2">
+          {/* Language Switcher */}
+          <div className="flex justify-end mb-3">
             <div className="inline-flex items-center bg-[#F8F9FA] border border-[#DEE2E6] rounded-[4px] p-0.5">
               <button
                 onClick={() => setLanguage("en")}
@@ -64,51 +81,55 @@ export default function LoginPage() {
           </div>
 
           <Link href="/" className="inline-flex items-center gap-2.5 sm:gap-3 mb-3 sm:mb-4">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-[4px] bg-[#714B67] flex items-center justify-center text-white font-bold text-base flex-shrink-0">
+            <div className="w-10 h-10 rounded-[4px] bg-[#714B67] flex items-center justify-center text-white font-bold text-lg flex-shrink-0 shadow-sm">
               CS
             </div>
-            <span className="font-bold text-xl sm:text-2xl text-[#212529] tracking-tight">
+            <span className="font-bold text-2xl text-[#212529] tracking-tight">
               {t("appTitle")}
             </span>
           </Link>
-          <h2 className="text-lg sm:text-xl font-bold text-[#212529]">
+          <h2 className="text-xl font-bold text-[#212529]">
             {t("signIn")}
           </h2>
-          <p className="mt-1 text-xs sm:text-sm text-[#6C757D]">
-            Enter your credentials or click any demo role below for instant access
+          <p className="mt-1.5 text-xs sm:text-sm text-[#6C757D]">
+            {isHindi 
+              ? "अपने चुनाव अभियान कार्यस्थान में प्रवेश करें" 
+              : "Access your election campaign management workspace"}
           </p>
         </div>
 
-        <div className="mt-5 sm:mt-6 sm:mx-auto sm:w-full sm:max-w-md space-y-4 w-full">
-          {/* Standard Auth Form Sheet */}
-          <div className="bg-white border border-[#DEE2E6] rounded-[4px] p-4 sm:p-6 shadow-none w-full">
-            <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-4">
+        <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md space-y-4 w-full">
+          {/* Main Auth Form Card */}
+          <div className="bg-white border border-[#DEE2E6] rounded-[6px] p-5 sm:p-7 shadow-sm w-full">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <Input
-                label="Email / Identifier"
-                type="email"
-                placeholder="candidate@chunavsetu.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                leftIcon={<Mail className="w-4 h-4 text-[#6C757D]" />}
+                label={isHindi ? "यूज़रनेम / ईमेल" : "Username or Email"}
+                type="text"
+                placeholder={isHindi ? "अपना यूज़रनेम या ईमेल दर्ज करें" : "Enter username or email"}
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                leftIcon={<User className="w-4 h-4 text-[#6C757D]" />}
                 required
+                autoComplete="username"
               />
 
               <div className="space-y-1.5">
                 <Input
-                  label="Password"
+                  label={isHindi ? "पासवर्ड" : "Password"}
                   type="password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   leftIcon={<Lock className="w-4 h-4 text-[#6C757D]" />}
                   required
+                  autoComplete="current-password"
                 />
                 <div className="flex justify-end">
                   <Link
                     href="/forgot-password"
                     className="text-xs font-semibold text-[#714B67] hover:underline"
                   >
-                    Forgot password?
+                    {isHindi ? "पासवर्ड भूल गए?" : "Forgot password?"}
                   </Link>
                 </div>
               </div>
@@ -117,87 +138,22 @@ export default function LoginPage() {
                 type="submit"
                 variant="primary"
                 size="md"
-                className="w-full h-11 text-[15px]"
+                className="w-full h-11 text-[15px] font-bold mt-2"
                 isLoading={isSubmitting || isLoading}
               >
                 {t("signIn")}
               </Button>
             </form>
-          </div>
 
-          {/* Instant Role Switching Sheet */}
-          <div className="bg-white border border-[#DEE2E6] rounded-[4px] p-4 sm:p-5 shadow-none w-full">
-            <div className="flex items-center gap-2 pb-2.5 sm:pb-3 border-b border-[#DEE2E6] mb-3">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#2E7D32]" />
-              <p className="text-xs font-bold text-[#6C757D] uppercase tracking-wider">
-                One-Click Demo Roles
+            <div className="mt-5 pt-4 border-t border-[#DEE2E6] text-center">
+              <p className="text-xs text-[#6C757D] flex items-center justify-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#2F6B4F]" />
+                <span>
+                  {isHindi 
+                    ? "सुरक्षित मल्टी-टेनेंट ऑथेंटिकेशन" 
+                    : "Secure Enterprise Multi-Tenant Access"}
+                </span>
               </p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-2 sm:gap-2.5 text-sm">
-              <button
-                onClick={() => quickLoginDemo("super_admin")}
-                className="flex items-center justify-between p-3 bg-[#F8F9FA] hover:bg-[#F1ECEF] border border-[#DEE2E6] rounded-[4px] text-left transition-colors w-full min-w-0"
-              >
-                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-[3px] bg-[#FFF3E0] text-[#E65100] flex items-center justify-center flex-shrink-0">
-                    <ShieldCheck className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-bold text-xs sm:text-sm text-[#212529] truncate">Super Admin Console</p>
-                    <p className="text-[11px] sm:text-xs text-[#6C757D] truncate">System overview, all clients, audit logs</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-[#6C757D] flex-shrink-0 ml-1.5" />
-              </button>
-
-              <button
-                onClick={() => quickLoginDemo("client_1")}
-                className="flex items-center justify-between p-3 bg-[#F8F9FA] hover:bg-[#F1ECEF] border border-[#DEE2E6] rounded-[4px] text-left transition-colors w-full min-w-0"
-              >
-                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-[3px] bg-[#F1ECEF] text-[#714B67] flex items-center justify-center flex-shrink-0">
-                    <UserCheck className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-bold text-xs sm:text-sm text-[#212529] truncate">Candidate 1: Rajesh Sharma</p>
-                    <p className="text-[11px] sm:text-xs text-[#6C757D] truncate">Central Assembly • 4 Booths • 8 Volunteers</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-[#6C757D] flex-shrink-0 ml-1.5" />
-              </button>
-
-              <button
-                onClick={() => quickLoginDemo("client_2")}
-                className="flex items-center justify-between p-3 bg-[#F8F9FA] hover:bg-[#F1ECEF] border border-[#DEE2E6] rounded-[4px] text-left transition-colors w-full min-w-0"
-              >
-                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-[3px] bg-[#E8F5E9] text-[#2E7D32] flex items-center justify-center flex-shrink-0">
-                    <Users className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-bold text-xs sm:text-sm text-[#212529] truncate">Candidate 2: Priya Verma</p>
-                    <p className="text-[11px] sm:text-xs text-[#6C757D] truncate">North Ward • Isolated Data Sandbox</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-[#6C757D] flex-shrink-0 ml-1.5" />
-              </button>
-
-              <button
-                onClick={() => quickLoginDemo("volunteer_1")}
-                className="flex items-center justify-between p-3 bg-[#F8F9FA] hover:bg-[#F1ECEF] border border-[#DEE2E6] rounded-[4px] text-left transition-colors w-full min-w-0"
-              >
-                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-[3px] bg-[#F1ECEF] text-[#714B67] flex items-center justify-center flex-shrink-0">
-                    <Smartphone className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-bold text-xs sm:text-sm text-[#212529] truncate">Volunteer: Amit Kumar</p>
-                    <p className="text-[11px] sm:text-xs text-[#6C757D] truncate">Mobile Field Survey • Booth 101</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-4 h-4 text-[#6C757D] flex-shrink-0 ml-1.5" />
-              </button>
             </div>
           </div>
         </div>

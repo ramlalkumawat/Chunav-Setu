@@ -30,7 +30,7 @@ export default function CandidateCallingPage() {
   const { client } = useAuth();
   const { t, language } = useLanguage();
   const isHindi = language === "hi";
-  const clientId = client?.id || "client-1";
+  const clientId = client?.id || "";
 
   // Data
   const [voters, setVoters] = useState<Voter[]>([]);

@@ -5,31 +5,41 @@ import { useRouter } from "next/navigation";
 import { dbService } from "@/lib/store/data-service";
 import { useAuth } from "@/lib/context/auth-context";
 import { useLanguage } from "@/lib/i18n";
-import { Voter } from "@/lib/types";
+import { Voter, Booth } from "@/lib/types";
 import { Badge } from "@/components/ui/Badge";
 import { VoterActionBar } from "@/components/communication/VoterActionBar";
 import {
   MapPin,
   ChevronRight,
+  Filter,
 } from "lucide-react";
 
 export default function VolunteerVotersPage() {
   const router = useRouter();
-  const { client, volunteer } = useAuth();
+  const { client, volunteer, user } = useAuth();
   const { t } = useLanguage();
-  const clientId = client?.id || "client-1";
+  const clientId = client?.id || user?.client_id || "";
 
   const [voters, setVoters] = useState<Voter[]>([]);
+  const [booths, setBooths] = useState<Booth[]>([]);
+  const [selectedBooth, setSelectedBooth] = useState("all");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  useEffect(() => {
-    const volId = volunteer?.id || "vol-1";
-    const result = dbService.getVotersForVolunteer(clientId, volId, { pageSize: 500 });
+  const loadData = () => {
+    if (!clientId) return;
+    const boothList = dbService.getBooths(clientId);
+    setBooths(boothList);
+    const result = dbService.getVoters(clientId, { pageSize: 1000 });
     setVoters(result.data);
-  }, [clientId, volunteer]);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, [clientId]);
 
   const filteredVoters = voters.filter((v) => {
+    const matchesBooth = selectedBooth === "all" || v.booth_id === selectedBooth;
     const matchesStatus =
       statusFilter === "all" ||
       (statusFilter === "uncontacted" ? v.contact_status === "uncontacted" : v.contact_status !== "uncontacted");
@@ -40,7 +50,7 @@ export default function VolunteerVotersPage() {
       (v.mobile && v.mobile.includes(search)) ||
       (v.address && v.address.toLowerCase().includes(search.toLowerCase()));
 
-    return matchesStatus && matchesSearch;
+    return matchesBooth && matchesStatus && matchesSearch;
   });
 
   return (
@@ -48,11 +58,11 @@ export default function VolunteerVotersPage() {
       <div>
         <h1 className="text-xl font-bold text-[#212529]">{t("votersTitle")}</h1>
         <p className="text-sm text-[#6C757D] mt-0.5">
-          {volunteer?.assigned_booth_name || "Booth 101"} • Tap any elector row to record survey
+          {client?.campaign_name || "Campaign"} • Tap any elector row to record survey
         </p>
       </div>
 
-      {/* Search and Status Pills */}
+      {/* Search, Booth Filter, and Status Pills */}
       <div className="space-y-2.5">
         <input
           type="text"
@@ -61,6 +71,24 @@ export default function VolunteerVotersPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="w-full h-11 bg-white border border-[#DEE2E6] rounded-[4px] text-[15px] px-3.5 text-[#212529] placeholder-[#ADB5BD] focus:outline-none focus:border-[#714B67]"
         />
+
+        {booths.length > 0 && (
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-[#714B67] flex-shrink-0" />
+            <select
+              value={selectedBooth}
+              onChange={(e) => setSelectedBooth(e.target.value)}
+              className="flex-1 h-9 bg-white border border-[#DEE2E6] rounded-[4px] text-xs font-semibold px-2.5 text-[#212529] focus:outline-none focus:border-[#714B67]"
+            >
+              <option value="all">All Booths ({voters.length} electors)</option>
+              {booths.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.booth_number} - {b.booth_name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-sm">
           <button
@@ -118,7 +146,7 @@ export default function VolunteerVotersPage() {
                 </div>
 
                 <p className="text-xs sm:text-sm text-[#6C757D] mt-0.5 font-medium">
-                  {voter.age ? `${voter.age} yrs` : ""} • {voter.gender || ""} • {voter.booth_number}
+                  {voter.age ? `${voter.age} yrs` : ""} • {voter.gender || ""} • {voter.booth_number || "Booth"}
                   {voter.mobile ? ` • 📞 ${voter.mobile}` : ""}
                 </p>
 
@@ -143,11 +171,7 @@ export default function VolunteerVotersPage() {
                 client={client}
                 size="sm"
                 layout="grid"
-                onActionComplete={() => {
-                  const volId = volunteer?.id || "vol-1";
-                  const result = dbService.getVotersForVolunteer(clientId, volId, { pageSize: 500 });
-                  setVoters(result.data);
-                }}
+                onActionComplete={loadData}
               />
             </div>
           </div>

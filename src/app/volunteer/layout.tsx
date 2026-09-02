@@ -4,7 +4,6 @@ import React from "react";
 import Link from "next/link";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { Footer } from "@/components/layout/Footer";
-import { DemoSwitcher } from "@/components/layout/DemoSwitcher";
 import { useAuth } from "@/lib/context/auth-context";
 import { useLanguage } from "@/lib/i18n";
 import { LoadingSpinner } from "@/components/ui/Loading";
@@ -12,14 +11,14 @@ import { Button } from "@/components/ui/Button";
 import { LogOut, Smartphone } from "lucide-react";
 
 export default function VolunteerLayout({ children }: { children: React.ReactNode }) {
-  const { user, role, volunteer, client, isLoading, logout, quickLoginDemo } = useAuth();
+  const { user, role, volunteer, client, isLoading, logout } = useAuth();
   const { language, setLanguage, t } = useLanguage();
   const isHindi = language === "hi";
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F7F7F7] w-full">
-        <LoadingSpinner text="Connecting volunteer field app..." />
+        <LoadingSpinner text={isHindi ? "फील्ड ऐप लोड हो रहा है..." : "Connecting volunteer field app..."} />
       </div>
     );
   }
@@ -33,19 +32,21 @@ export default function VolunteerLayout({ children }: { children: React.ReactNod
         </div>
         <h2 className="text-lg font-bold text-[#212529]">{t("volunteerPortal")}</h2>
         <p className="text-sm text-[#6C757D] max-w-md mt-1 mb-5">
-          This mobile app is configured for ground workers. Click below to enter as Volunteer (Amit Kumar).
+          {isHindi 
+            ? "इस पोर्टल का उपयोग करने के लिए वॉलंटियर ऑथराइजेशन आवश्यक है।"
+            : "This portal requires volunteer authorization. Please sign in to proceed."}
         </p>
-        <Button size="md" variant="primary" onClick={() => quickLoginDemo("volunteer_1")}>
-          Switch to Volunteer (Amit Kumar)
-        </Button>
+        <Link href="/login">
+          <Button size="md" variant="primary">
+            {t("signIn")}
+          </Button>
+        </Link>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-[#F7F7F7] flex flex-col pb-20 sm:pb-0 w-full max-w-full overflow-x-hidden">
-      <DemoSwitcher />
-
       {/* Mobile Top Header */}
       <header className="min-h-14 bg-white border-b border-[#DEE2E6] px-3 sm:px-6 py-2 flex items-center justify-between sticky top-0 z-30 shadow-none gap-2 w-full max-w-full">
         <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
@@ -57,7 +58,7 @@ export default function VolunteerLayout({ children }: { children: React.ReactNod
               {volunteer?.name || user?.full_name || "Volunteer"}
             </p>
             <p className="text-[11px] sm:text-[12px] text-[#6C757D] mt-1 truncate font-medium">
-              {client?.candidate_name} • {volunteer?.assigned_booth_name || "Booth 101"}
+              {client?.candidate_name || "Campaign"} • {client?.campaign_name || "All Booths"}
             </p>
           </div>
         </div>

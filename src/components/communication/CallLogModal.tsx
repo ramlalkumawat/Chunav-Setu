@@ -47,7 +47,7 @@ export function CallLogModal({
 
   if (!voter) return null;
 
-  const clientId = client?.id || "client-1";
+  const clientId = client?.id || voter?.client_id || user?.client_id || "";
   const actorName = volunteer?.name || user?.full_name || "Campaign Team";
   const userRole: UserRole = (role as UserRole) || "volunteer";
 

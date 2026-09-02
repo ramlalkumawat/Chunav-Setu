@@ -9,10 +9,10 @@ import { Badge } from "@/components/ui/Badge";
 import { formatDateTime } from "@/lib/utils";
 
 export default function VolunteerActivityPage() {
-  const { client, volunteer } = useAuth();
+  const { client, volunteer, user } = useAuth();
   const { t } = useLanguage();
-  const clientId = client?.id || "client-1";
-  const volunteerId = volunteer?.id || "vol-1";
+  const clientId = client?.id || user?.client_id || "";
+  const volunteerId = volunteer?.id || user?.id || "";
 
   const [activities, setActivities] = useState<FieldActivity[]>([]);
 

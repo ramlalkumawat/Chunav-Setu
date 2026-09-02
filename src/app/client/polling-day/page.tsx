@@ -51,7 +51,7 @@ export default function PollingDayDashboardPage() {
   const { t, language } = useLanguage();
   const { success, error: toastError } = useToast();
   const [, startTransition] = useTransition();
-  const clientId = client?.id || "client-1";
+  const clientId = client?.id || user?.client_id || "";
   const isHindi = language === "hi";
 
   // Dashboard Data State

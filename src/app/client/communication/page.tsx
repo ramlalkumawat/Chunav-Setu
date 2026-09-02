@@ -34,7 +34,7 @@ export default function CandidateCommunicationPage() {
   const { client } = useAuth();
   const { t, language } = useLanguage();
   const isHindi = language === "hi";
-  const clientId = client?.id || "client-1";
+  const clientId = client?.id || "";
 
   const [summary, setSummary] = useState<CommunicationSummaryStats | null>(null);
   const [quickSearch, setQuickSearch] = useState("");

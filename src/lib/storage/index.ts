@@ -138,7 +138,7 @@ export class StorageService {
     });
 
     if (uploadError) {
-      console.warn("Supabase Storage remote upload notice (using dual local persistence):", uploadError);
+      console.warn("Supabase Storage remote upload notice:", uploadError);
     }
 
     // 3. Generate Signed URL for immediate usage

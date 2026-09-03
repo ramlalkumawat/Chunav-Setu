@@ -25,8 +25,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     );
   }
 
-  // Guard: allow client_admin and super_admin
-  if (!user || (role !== "client_admin" && role !== "super_admin")) {
+  // Guard: allow client_admin, candidate, and super_admin
+  if (!user || (role !== "client_admin" && role !== "candidate" && role !== "super_admin")) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 bg-[#F7F7F7] text-center w-full max-w-full">
         <div className="w-14 h-14 rounded-[4px] bg-[#FFF3E0] border border-[#FFE0B2] text-[#E65100] flex items-center justify-center mb-3.5">

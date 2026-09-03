@@ -33,6 +33,20 @@ const RBAC_MATRIX: Record<UserRole, Partial<Record<Resource, Action[]>>> = {
     polling_day: ["create", "read", "update", "export", "manage"],
   },
 
+  candidate: {
+    client: ["read", "update"],
+    campaign: ["read", "update"],
+    voter: ["create", "read", "update", "delete", "export", "import"],
+    booth: ["create", "read", "update", "delete"],
+    volunteer: ["create", "read", "update", "delete"],
+    task: ["create", "read", "update", "delete"],
+    field_activity: ["read"],
+    follow_up: ["create", "read", "update", "delete"],
+    report: ["read", "export"],
+    audit_log: ["read"],
+    polling_day: ["create", "read", "update", "export", "manage"],
+  },
+
   volunteer: {
     voter: ["read", "update"], // Can only update contact status/notes for assigned electors
     task: ["read", "update"], // Can only view and complete assigned tasks

@@ -3,7 +3,7 @@ import { getRequestSession } from "@/lib/security/session";
 import { requirePermission } from "@/lib/security/rbac";
 import { validateTenantAccess } from "@/lib/security/tenant";
 import { parseVoterCsv } from "@/lib/utils/csv-parser";
-import { dbService } from "@/lib/store/data-service";
+import { db } from "@/lib/supabase/database-service";
 import { storageService } from "@/lib/storage";
 
 const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024; // 2MB Limit
@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Get existing voter cards in tenant for duplicate protection
-    const existingVoters = dbService.getVoters(effectiveClientId, { pageSize: 50000 }).data;
-    const existingCards = new Set(existingVoters.map((v) => v.voter_id_card.toUpperCase()));
+    const existingResult = await db.getVoters(effectiveClientId, { pageSize: 50000 });
+    const existingCards = new Set((existingResult.data || []).map((v) => v.voter_id_card.toUpperCase()));
 
     const parseResult = parseVoterCsv(csvText, existingCards);
 
@@ -59,6 +59,8 @@ export async function POST(req: NextRequest) {
 
     // Bulk insert validated records into tenant database
     const votersToInsert = parseResult.validRows.map((row) => ({
+      client_id: effectiveClientId,
+      campaign_id: "c1111111-1111-1111-1111-111111111111",
       voter_id_card: row.voter_id_card,
       name: row.name,
       mobile: row.mobile,
@@ -72,7 +74,7 @@ export async function POST(req: NextRequest) {
       notes: row.notes,
     }));
 
-    const { inserted, skipped } = dbService.batchCreateVoters(effectiveClientId, "campaign-1", votersToInsert);
+    const { inserted, errors } = await db.bulkInsertVoters(effectiveClientId, votersToInsert);
 
     // Archive source file into voter-files bucket and create file_assets record
     let fileAssetRecord;
@@ -80,13 +82,13 @@ export async function POST(req: NextRequest) {
       const csvBlob = new Blob([csvText], { type: "text/csv" });
       const storageResult = await storageService.uploadVoterFile(csvBlob, {
         clientId: effectiveClientId,
-        campaignId: "campaign-1",
+        campaignId: "c1111111-1111-1111-1111-111111111111",
         uploadedBy: session!.userId,
         customName: `voter_roll_batch_${Date.now()}.csv`,
         metadata: {
           total_rows: parseResult.totalRows,
           imported_rows: inserted,
-          duplicates: parseResult.duplicates + skipped,
+          duplicates: parseResult.duplicates,
           invalid_rows: parseResult.invalidRows.length,
           uploaded_by_name: session!.fullName,
         },
@@ -96,7 +98,7 @@ export async function POST(req: NextRequest) {
       console.warn("Voter file storage archiving notice:", archiveErr);
     }
 
-    dbService.logAction(
+    await db.logAuditEvent(
       { id: session!.userId, name: session!.fullName },
       "VOTERS_BULK_IMPORTED",
       "Voter",
@@ -104,7 +106,7 @@ export async function POST(req: NextRequest) {
       {
         count: inserted,
         totalRows: parseResult.totalRows,
-        duplicates: parseResult.duplicates + skipped,
+        duplicates: parseResult.duplicates,
         fileAssetId: fileAssetRecord?.id,
         storagePath: fileAssetRecord?.storage_path,
       },
@@ -116,7 +118,8 @@ export async function POST(req: NextRequest) {
       importedCount: inserted,
       totalRows: parseResult.totalRows,
       invalidCount: parseResult.invalidRows.length,
-      duplicates: parseResult.duplicates + skipped,
+      duplicates: parseResult.duplicates,
+      errorCount: errors,
     });
   } catch (err) {
     console.error("Voter import API error:", err);

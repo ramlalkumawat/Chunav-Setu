@@ -267,16 +267,31 @@ class DatabaseService {
     const generatedPassword = newPassword || `Setu@${Math.floor(1000 + Math.random() * 9000)}`;
 
     try {
-      const { data: profiles } = await admin
+      let { data: profiles } = await admin
         .from("profiles")
         .select("id, email")
         .eq("client_id", clientId)
-        .eq("role", "client_admin");
+        .in("role", ["client_admin", "candidate"]);
 
-      if (profiles && profiles.length > 0) {
-        for (const p of profiles) {
-          await admin.auth.admin.updateUserById(p.id, { password: generatedPassword });
+      if (!profiles || profiles.length === 0) {
+        // Fallback check by client's email
+        const { data: profileByEmail } = await admin
+          .from("profiles")
+          .select("id, email")
+          .eq("email", client.email.trim().toLowerCase())
+          .single();
+
+        if (profileByEmail) {
+          profiles = [profileByEmail];
         }
+      }
+
+      if (!profiles || profiles.length === 0) {
+        return { success: false, error: "No user account linked to this candidate." };
+      }
+
+      for (const p of profiles) {
+        await admin.auth.admin.updateUserById(p.id, { password: generatedPassword });
       }
 
       return { success: true, tempPassword: generatedPassword };
@@ -466,6 +481,50 @@ class DatabaseService {
     const supabase = this.getClient();
     const { error } = await supabase.from("volunteers").delete().eq("id", id).eq("client_id", clientId);
     return !error;
+  }
+
+  public async resetVolunteerPassword(
+    clientId: string,
+    volunteerId: string,
+    newPassword?: string
+  ): Promise<{ success: boolean; tempPassword?: string; error?: string }> {
+    const admin = this.getAdminClient();
+    const supabase = this.getClient();
+
+    const { data: volunteer, error: volErr } = await supabase
+      .from("volunteers")
+      .select("*")
+      .eq("id", volunteerId)
+      .eq("client_id", clientId)
+      .single();
+
+    if (volErr || !volunteer) {
+      return { success: false, error: "Volunteer record not found." };
+    }
+
+    let targetUserId = volunteer.user_id;
+
+    if (!targetUserId && volunteer.email) {
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("id")
+        .eq("email", volunteer.email.trim().toLowerCase())
+        .single();
+      if (profile) targetUserId = profile.id;
+    }
+
+    if (!targetUserId) {
+      return { success: false, error: "No linked user account found for this volunteer." };
+    }
+
+    const generatedPassword = newPassword || `Vol@${Math.floor(1000 + Math.random() * 9000)}`;
+
+    try {
+      await admin.auth.admin.updateUserById(targetUserId, { password: generatedPassword });
+      return { success: true, tempPassword: generatedPassword };
+    } catch (err: any) {
+      return { success: false, error: err.message || "Failed to reset volunteer password." };
+    }
   }
 
   // -------------------------------------------------------------------
@@ -726,10 +785,13 @@ class DatabaseService {
       .from("polling_days")
       .select("*")
       .eq("client_id", clientId)
-      .order("polling_date", { ascending: false });
+      .order("election_date", { ascending: false });
 
     if (error) return [];
-    return (data || []) as PollingDay[];
+    return (data || []).map((d) => ({
+      ...d,
+      polling_date: d.election_date || d.polling_date,
+    })) as PollingDay[];
   }
 
   public async getActivePollingDay(clientId: string): Promise<PollingDay | null> {
@@ -738,12 +800,15 @@ class DatabaseService {
       .from("polling_days")
       .select("*")
       .eq("client_id", clientId)
-      .order("created_at", { ascending: false })
+      .order("election_date", { ascending: false })
       .limit(1)
       .single();
 
     if (error || !data) return null;
-    return data as PollingDay;
+    return {
+      ...data,
+      polling_date: data.election_date || data.polling_date,
+    } as PollingDay;
   }
 
   public async getPollingDayDashboardStats(
@@ -752,35 +817,44 @@ class DatabaseService {
   ): Promise<PollingDayDashboardStats> {
     const supabase = this.getClient();
 
-    // 1. Get total voters for this client
+    // 1. Get active polling day record
+    const pollingDay = await this.getActivePollingDay(clientId);
+
+    // 2. Get total voters for this client
     const { count: totalVoters } = await supabase
       .from("voters")
       .select("id", { count: "exact", head: true })
       .eq("client_id", clientId);
 
-    // 2. Get status updates for this polling day
+    // 3. Get status updates for this polling day
     let updatesQuery = supabase.from("polling_day_updates").select("status, booth_id").eq("client_id", clientId);
-    if (pollingDayId) {
-      updatesQuery = updatesQuery.eq("polling_day_id", pollingDayId);
+    if (pollingDayId || pollingDay?.id) {
+      updatesQuery = updatesQuery.eq("polling_day_id", pollingDayId || pollingDay!.id);
     }
     const { data: updates } = await updatesQuery;
+
+    // 4. Get follow-ups count
+    const { count: fuCount } = await supabase
+      .from("polling_day_followups")
+      .select("id", { count: "exact", head: true })
+      .eq("client_id", clientId)
+      .eq("status", "pending");
 
     const total = totalVoters || 0;
     const voted = (updates || []).filter((u) => u.status === "VOTE_CAST" || u.status === "VOTING_REPORTED").length;
     const pending = total - voted;
     const turnoutPercentage = total > 0 ? Math.round((voted / total) * 1000) / 10 : 0;
-
     const notReported = (updates || []).filter((u) => u.status === "NOT_REPORTED").length;
 
     return {
-      pollingDay: null,
+      pollingDay,
       totalVoters: total,
       voteCastCount: voted,
       statusReported: (updates || []).length,
       votingActivityReported: voted,
       pendingVoters: pending,
       notReportedCount: notReported,
-      followUpsCount: 0,
+      followUpsCount: fuCount || 0,
       turnoutPercentage,
       hourlyActivity: [],
       recentUpdates: [],
@@ -830,6 +904,194 @@ class DatabaseService {
       return null;
     }
     return record as PollingDayUpdate;
+  }
+
+  public async getPollingDayFollowUps(clientId: string, volunteerId?: string): Promise<PollingDayFollowUp[]> {
+    const supabase = this.getClient();
+    let query = supabase
+      .from("polling_day_followups")
+      .select("*")
+      .eq("client_id", clientId)
+      .order("created_at", { ascending: false });
+
+    if (volunteerId) {
+      query = query.eq("volunteer_id", volunteerId);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      console.error("Error fetching polling follow-ups:", error);
+      return [];
+    }
+    return (data || []) as PollingDayFollowUp[];
+  }
+
+  public async createPollingDayFollowUp(
+    clientId: string,
+    data: {
+      campaign_id: string;
+      polling_day_id: string;
+      voter_id: string;
+      booth_id?: string;
+      volunteer_id?: string;
+      reason: string;
+      note?: string;
+    }
+  ): Promise<PollingDayFollowUp | null> {
+    const supabase = this.getClient();
+    const { data: newFu, error } = await supabase
+      .from("polling_day_followups")
+      .insert({
+        client_id: clientId,
+        campaign_id: data.campaign_id,
+        polling_day_id: data.polling_day_id,
+        voter_id: data.voter_id,
+        booth_id: data.booth_id || null,
+        volunteer_id: data.volunteer_id || null,
+        reason: data.reason,
+        note: data.note || null,
+        status: "pending",
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating polling follow-up:", error);
+      return null;
+    }
+    return newFu as PollingDayFollowUp;
+  }
+
+  public async resolvePollingDayFollowUp(clientId: string, followUpId: string): Promise<PollingDayFollowUp | null> {
+    const supabase = this.getClient();
+    const { data, error } = await supabase
+      .from("polling_day_followups")
+      .update({ status: "completed", updated_at: new Date().toISOString() })
+      .eq("id", followUpId)
+      .eq("client_id", clientId)
+      .select()
+      .single();
+
+    if (error) return null;
+    return data as PollingDayFollowUp;
+  }
+
+  public async getPollingDayVoters(
+    clientId: string,
+    volunteerId?: string,
+    options: {
+      search?: string;
+      status?: string;
+      boothId?: string;
+      page?: number;
+      pageSize?: number;
+    } = {}
+  ): Promise<PaginatedResult<any>> {
+    const supabase = this.getClient();
+    const page = Math.max(1, options.page || 1);
+    const pageSize = Math.min(100, Math.max(1, options.pageSize || 20));
+    const offset = (page - 1) * pageSize;
+
+    let voterQuery = supabase
+      .from("voters")
+      .select("id, name, voter_id_card, mobile, booth_id, area_id", { count: "exact" })
+      .eq("client_id", clientId)
+      .order("name", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+
+    if (options.boothId) {
+      voterQuery = voterQuery.eq("booth_id", options.boothId);
+    }
+    if (options.search) {
+      voterQuery = voterQuery.or(`name.ilike.%${options.search}%,voter_id_card.ilike.%${options.search}%,mobile.ilike.%${options.search}%`);
+    }
+
+    const { data: voters, count, error } = await voterQuery;
+    if (error || !voters) {
+      return { data: [], total: 0, page, pageSize, totalPages: 0 };
+    }
+
+    // Fetch existing status updates for these voters
+    const voterIds = voters.map((v) => v.id);
+    const { data: updates } = await supabase
+      .from("polling_day_updates")
+      .select("*")
+      .eq("client_id", clientId)
+      .in("voter_id", voterIds);
+
+    const updateMap = new Map((updates || []).map((u) => [u.voter_id, u]));
+
+    const enriched = voters.map((v) => {
+      const up = updateMap.get(v.id);
+      return {
+        id: up?.id || v.id,
+        voter_id: v.id,
+        voter_name: v.name,
+        voter_id_card: v.voter_id_card,
+        mobile: v.mobile,
+        booth_id: v.booth_id,
+        status: up?.status || "PENDING",
+        updated_at: up?.updated_at || null,
+        note: up?.note || null,
+      };
+    });
+
+    const total = count || 0;
+    return {
+      data: enriched,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  // -------------------------------------------------------------------
+  // FILE ASSETS (OBJECT STORAGE REPOSITORIES)
+  // -------------------------------------------------------------------
+  public async createFileAsset(
+    clientId: string,
+    data: Omit<FileAsset, "id" | "created_at" | "updated_at">
+  ): Promise<FileAsset | null> {
+    const supabase = this.getClient();
+    const { data: record, error } = await supabase
+      .from("file_assets")
+      .insert({
+        ...data,
+        client_id: clientId,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating file_asset record:", error);
+      return null;
+    }
+    return record as FileAsset;
+  }
+
+  public async getFileAssetById(clientId: string, id: string): Promise<FileAsset | null> {
+    const supabase = this.getClient();
+    const { data, error } = await supabase
+      .from("file_assets")
+      .select("*")
+      .eq("id", id)
+      .eq("client_id", clientId)
+      .single();
+
+    if (error || !data) return null;
+    return data as FileAsset;
+  }
+
+  public async deleteFileAsset(clientId: string, id: string): Promise<boolean> {
+    const supabase = this.getClient();
+    const { error } = await supabase
+      .from("file_assets")
+      .delete()
+      .eq("id", id)
+      .eq("client_id", clientId);
+
+    return !error;
   }
 
   // -------------------------------------------------------------------

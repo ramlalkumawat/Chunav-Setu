@@ -4,7 +4,7 @@ import { requirePermission } from "@/lib/security/rbac";
 import { validateTenantAccess } from "@/lib/security/tenant";
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/security/rate-limiter";
 import { sanitizeCsvCell } from "@/lib/security/sanitizer";
-import { dbService } from "@/lib/store/data-service";
+import { db } from "@/lib/supabase/database-service";
 
 export async function POST(req: NextRequest) {
   const session = getRequestSession(req);
@@ -23,7 +23,8 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const allVoters = dbService.getVoters(effectiveClientId, { pageSize: 50000 }).data;
+    const voterResult = await db.getVoters(effectiveClientId, { pageSize: 50000 });
+    const allVoters = voterResult.data || [];
 
     const headers = [
       "Voter ID / EPIC",
@@ -31,9 +32,6 @@ export async function POST(req: NextRequest) {
       "Mobile",
       "Age",
       "Gender",
-      "Booth Number",
-      "Booth Name",
-      "Area / Ward",
       "Address",
       "Contact Status",
       "Follow-up Status",
@@ -49,9 +47,6 @@ export async function POST(req: NextRequest) {
         v.mobile || "",
         v.age || "",
         v.gender || "",
-        v.booth_number || "",
-        v.booth_name || "",
-        v.area_name || "",
         v.address || "",
         v.contact_status,
         v.follow_up_status,
@@ -64,7 +59,7 @@ export async function POST(req: NextRequest) {
     const csvOutput = [headerLine, ...dataLines].join("\r\n");
 
     // Audit Log the sensitive export event
-    dbService.logAction(
+    await db.logAuditEvent(
       { id: session!.userId, name: session!.fullName },
       "VOTERS_EXPORTED",
       "Voter",

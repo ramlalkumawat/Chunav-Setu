@@ -9,7 +9,6 @@ const PUBLIC_PATHS = [
   "/forgot-password",
   "/api/auth/login",
   "/api/auth/logout",
-  "/api/auth/demo-switch",
   "/api/auth/session",
 ];
 
@@ -55,10 +54,10 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL(session.role === "volunteer" ? "/volunteer" : "/client", request.url));
     }
 
-    // Client Admin Route Protection
-    if (pathname.startsWith("/client") && session.role !== "client_admin" && session.role !== "super_admin") {
+    // Client Admin / Candidate Route Protection
+    if (pathname.startsWith("/client") && session.role !== "client_admin" && session.role !== "candidate" && session.role !== "super_admin") {
       if (pathname.startsWith("/api/")) {
-        return NextResponse.json({ error: "Forbidden. Candidate Admin privileges required." }, { status: 403 });
+        return NextResponse.json({ error: "Forbidden. Candidate privileges required." }, { status: 403 });
       }
       return NextResponse.redirect(new URL("/volunteer", request.url));
     }

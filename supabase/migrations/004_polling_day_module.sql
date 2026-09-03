@@ -15,14 +15,14 @@ CREATE TABLE IF NOT EXISTS public.polling_days (
     client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE CASCADE,
     campaign_id UUID NOT NULL REFERENCES public.campaigns(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
-    polling_date DATE NOT NULL,
+    election_date DATE NOT NULL,
     start_time TEXT DEFAULT '07:00 AM',
     end_time TEXT DEFAULT '06:00 PM',
     status TEXT NOT NULL DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'active', 'completed')),
     total_target_voters INT DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(client_id, polling_date)
+    UNIQUE(client_id, election_date)
 );
 
 -- 2. POLLING DAY UPDATES TABLE (Rapid Field Turnout Telemetry)

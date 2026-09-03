@@ -36,6 +36,28 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
+    // Check if resetting password
+    if (body.action === "reset_password" && body.volunteerId) {
+      const permManage = requirePermission(session, "volunteer", "update");
+      if (!permManage.authorized) return permManage.errorResponse!;
+
+      const resetResult = await db.resetVolunteerPassword(candidateClientId, body.volunteerId, body.newPassword);
+      if (!resetResult.success) {
+        return NextResponse.json({ error: resetResult.error || "Password reset failed." }, { status: 500 });
+      }
+
+      await db.logAuditEvent(
+        { id: session!.userId, name: session!.fullName },
+        "PASSWORD_RESET",
+        "VolunteerAccount",
+        body.volunteerId,
+        { action: "Candidate reset volunteer password" },
+        candidateClientId
+      );
+
+      return NextResponse.json({ success: true, tempPassword: resetResult.tempPassword });
+    }
+
     const name = sanitizeString(body.name);
     const mobile = sanitizeString(body.mobile);
     const email = body.email ? sanitizeString(body.email).toLowerCase() : undefined;

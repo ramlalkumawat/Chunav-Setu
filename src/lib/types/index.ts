@@ -1,4 +1,4 @@
-export type UserRole = 'super_admin' | 'client_admin' | 'volunteer';
+export type UserRole = 'super_admin' | 'client_admin' | 'volunteer' | 'candidate';
 
 export interface UserProfile {
   id: string;
@@ -262,7 +262,8 @@ export interface PollingDay {
   client_id: string;
   campaign_id: string;
   title: string;
-  polling_date: string;
+  election_date: string;
+  polling_date?: string;
   start_time?: string;
   end_time?: string;
   status: PollingDayStatus;

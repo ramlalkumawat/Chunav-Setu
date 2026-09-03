@@ -160,7 +160,7 @@ export default function VolunteerPollingDayPage() {
         </div>
 
         <h1 className="text-xl sm:text-2xl font-bold tracking-tight mt-1">
-          {pollingDay?.polling_date || client?.election_date || "12 December 2026"}
+          {pollingDay?.election_date || pollingDay?.polling_date || client?.election_date || "12 December 2026"}
         </h1>
 
         <div className="flex items-center gap-1.5 text-xs sm:text-sm text-white/90 mt-1.5">

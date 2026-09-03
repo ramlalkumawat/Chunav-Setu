@@ -23,7 +23,7 @@ export interface UploadOptions {
 }
 
 /**
- * Direct Supabase Storage operations using the client session
+ * Direct Supabase Storage operations with multi-tenant isolation
  */
 export class SupabaseStorageProvider {
   /**
@@ -90,3 +90,4 @@ export class SupabaseStorageProvider {
 }
 
 export const supabaseStorage = new SupabaseStorageProvider();
+

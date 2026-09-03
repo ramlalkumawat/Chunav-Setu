@@ -3,7 +3,7 @@ import { getRequestSession } from "@/lib/security/session";
 import { requirePermission } from "@/lib/security/rbac";
 import { validateTenantAccess } from "@/lib/security/tenant";
 import { sanitizeString } from "@/lib/security/sanitizer";
-import { dbService } from "@/lib/store/data-service";
+import { db } from "@/lib/supabase/database-service";
 
 export async function GET(req: NextRequest) {
   const session = getRequestSession(req);
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
   const effectiveClientId = tenantCheck.effectiveClientId!;
   const volunteerId = session!.role === "volunteer" ? session!.userId : undefined;
 
-  const followUps = dbService.getPollingDayFollowUps(effectiveClientId, volunteerId);
+  const followUps = await db.getPollingDayFollowUps(effectiveClientId, volunteerId);
   return NextResponse.json(followUps);
 }
 
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
 
     // Check if resolving existing follow-up
     if (body.action === "resolve" && body.followUpId) {
-      const resolved = dbService.resolvePollingFollowUp(effectiveClientId, body.followUpId);
+      const resolved = await db.resolvePollingDayFollowUp(effectiveClientId, body.followUpId);
       if (!resolved) {
         return NextResponse.json({ error: "Follow-up record not found." }, { status: 404 });
       }
@@ -45,38 +45,35 @@ export async function POST(req: NextRequest) {
     }
 
     // Creating new follow-up
-    const { voterId, voterName, voterIdCard, boothId, boothNumber, boothName, areaName, reason, note } = body;
+    const { voterId, boothId, reason, note, pollingDayId } = body;
 
     if (!voterId || !reason) {
       return NextResponse.json({ error: "Voter ID and follow-up reason are required." }, { status: 400 });
     }
 
+    const activePollingDay = await db.getActivePollingDay(effectiveClientId);
     const volunteerId = session!.role === "volunteer" ? session!.userId : undefined;
-    const volunteerName = session!.fullName || "Volunteer";
 
-    const created = dbService.createPollingFollowUp(effectiveClientId, {
-      client_id: effectiveClientId,
-      campaign_id: "campaign-1",
-      polling_day_id: `pd-${effectiveClientId}`,
+    const created = await db.createPollingDayFollowUp(effectiveClientId, {
+      campaign_id: activePollingDay?.campaign_id || "c1111111-1111-1111-1111-111111111111",
+      polling_day_id: pollingDayId || activePollingDay?.id || "00000000-0000-0000-0000-000000000000",
       voter_id: voterId,
-      voter_name: sanitizeString(voterName) || "Voter",
-      voter_id_card: sanitizeString(voterIdCard) || "VOT1000",
-      booth_id: boothId || "booth-1",
-      booth_number: boothNumber || "Booth 101",
-      booth_name: boothName || "Govt School",
-      area_name: areaName || "General Ward",
+      booth_id: boothId || undefined,
       volunteer_id: volunteerId,
-      volunteer_name: volunteerName,
       reason: sanitizeString(reason),
       note: note ? sanitizeString(note) : undefined,
     });
 
-    dbService.logAction(
+    if (!created) {
+      return NextResponse.json({ error: "Failed to record follow-up issue." }, { status: 500 });
+    }
+
+    await db.logAuditEvent(
       { id: session!.userId, name: session!.fullName },
       "POLLING_FOLLOWUP_CREATED",
       "FollowUp",
       created.id,
-      { voter: created.voter_name, reason },
+      { voter_id: voterId, reason },
       effectiveClientId
     );
 

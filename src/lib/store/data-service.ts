@@ -993,16 +993,20 @@ class DataService {
       days[index] = {
         ...days[index],
         ...data,
+        election_date: data.election_date || data.polling_date || days[index].election_date || "12 December 2026",
+        polling_date: data.election_date || data.polling_date || days[index].polling_date || "12 December 2026",
         updated_at: now,
       };
       configured = days[index];
     } else {
+      const eDate = data.election_date || data.polling_date || "12 December 2026";
       configured = {
         id: `pd-${clientId}-${Date.now()}`,
         client_id: clientId,
         campaign_id: data.campaign_id || "campaign-1",
         title: data.title || "General Election Polling Day",
-        polling_date: data.polling_date || "12 December 2026",
+        election_date: eDate,
+        polling_date: eDate,
         start_time: data.start_time || "07:00 AM",
         end_time: data.end_time || "06:00 PM",
         status: data.status || "active",

@@ -3,7 +3,7 @@ import { getRequestSession } from "@/lib/security/session";
 import { requirePermission } from "@/lib/security/rbac";
 import { validateTenantAccess } from "@/lib/security/tenant";
 import { sanitizeString } from "@/lib/security/sanitizer";
-import { dbService } from "@/lib/store/data-service";
+import { db } from "@/lib/supabase/database-service";
 import { PollingVoterStatus } from "@/lib/types";
 
 export async function GET(req: NextRequest) {
@@ -24,10 +24,9 @@ export async function GET(req: NextRequest) {
   const page = parseInt(searchParams.get("page") || "1", 10);
   const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
 
-  // If volunteer role, pass volunteer ID to scope to assigned booth
   const volunteerId = session!.role === "volunteer" ? session!.userId : undefined;
 
-  const result = dbService.getPollingDayVoters(effectiveClientId, volunteerId, {
+  const result = await db.getPollingDayVoters(effectiveClientId, volunteerId, {
     search,
     status,
     boothId,
@@ -50,29 +49,38 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { voterId, status, note } = body;
+    const { voterId, status, note, pollingDayId, boothId } = body;
 
     if (!voterId || typeof voterId !== "string") {
       return NextResponse.json({ error: "Voter ID is required." }, { status: 400 });
     }
 
-    const validStatuses: PollingVoterStatus[] = ["VOTING_REPORTED", "PENDING", "FOLLOW_UP_REQUIRED"];
+    const validStatuses: PollingVoterStatus[] = ["VOTING_REPORTED", "PENDING", "FOLLOW_UP_REQUIRED", "VOTE_CAST", "NOT_REPORTED"];
     if (!status || !validStatuses.includes(status)) {
       return NextResponse.json({ error: "Invalid polling operational status." }, { status: 400 });
     }
 
-    const volunteerId = session!.role === "volunteer" ? session!.userId : undefined;
+    const activePollingDay = await db.getActivePollingDay(effectiveClientId);
+    const targetPollingDayId = pollingDayId || activePollingDay?.id || `00000000-0000-0000-0000-000000000000`;
     const cleanNote = note ? sanitizeString(note) : undefined;
 
-    const record = dbService.updatePollingVoterStatus(
-      effectiveClientId,
-      voterId,
+    const record = await db.recordPollingStatusUpdate(effectiveClientId, {
+      polling_day_id: targetPollingDayId,
+      campaign_id: activePollingDay?.campaign_id || "c1111111-1111-1111-1111-111111111111",
+      voter_id: voterId,
+      booth_id: boothId || undefined,
+      volunteer_id: session!.role === "volunteer" ? session!.userId : undefined,
       status,
-      volunteerId,
-      cleanNote
-    );
+      updated_by: session!.fullName || "Volunteer",
+      updated_by_role: session!.role,
+      note: cleanNote,
+    });
 
-    dbService.logAction(
+    if (!record) {
+      return NextResponse.json({ error: "Failed to update polling status." }, { status: 500 });
+    }
+
+    await db.logAuditEvent(
       { id: session!.userId, name: session!.fullName },
       "POLLING_STATUS_UPDATED",
       "Voter",
@@ -85,7 +93,7 @@ export async function POST(req: NextRequest) {
       success: true,
       record,
       message: "Status updated successfully",
-      updatedAt: record.created_at,
+      updatedAt: record.updated_at || record.created_at,
     });
   } catch (err) {
     console.error("Polling status update API error:", err);

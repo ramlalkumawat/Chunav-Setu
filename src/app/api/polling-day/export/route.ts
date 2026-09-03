@@ -4,7 +4,7 @@ import { requirePermission } from "@/lib/security/rbac";
 import { validateTenantAccess } from "@/lib/security/tenant";
 import { checkRateLimit, rateLimitExceededResponse } from "@/lib/security/rate-limiter";
 import { sanitizeCsvCell } from "@/lib/security/sanitizer";
-import { dbService } from "@/lib/store/data-service";
+import { db } from "@/lib/supabase/database-service";
 
 export async function POST(req: NextRequest) {
   const session = getRequestSession(req);
@@ -22,53 +22,40 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const boothStats = dbService.getPollingDayBoothStats(effectiveClientId);
-    const volunteerStats = dbService.getPollingDayVolunteerStats(effectiveClientId);
-    const dashboardStats = dbService.getPollingDayDashboardStats(effectiveClientId);
+    const dashboardStats = await db.getPollingDayDashboardStats(effectiveClientId);
+    const booths = await db.getBooths(effectiveClientId);
 
     const headers = [
       "Booth Number",
       "Polling Station Name",
-      "Area / Ward",
-      "Total Registered Voters",
-      "Turnout Reported",
-      "Voting Activity Recorded",
-      "Pending Contact",
-      "Follow-up Issues",
-      "Turnout Progress %",
-      "Assigned Volunteers",
+      "Target Voters",
+      "Address",
     ];
 
     const headerLine = headers.map(sanitizeCsvCell).join(",");
-    const rows = boothStats.map((b) =>
+    const rows = booths.map((b) =>
       [
         b.booth_number,
         b.booth_name,
-        b.area_name,
-        b.total_voters,
-        b.reported_count,
-        b.voting_reported_count,
-        b.pending_count,
-        b.follow_up_count,
-        `${b.progress_percentage}%`,
-        b.assigned_volunteers_count,
+        b.target_voter_count || 0,
+        b.location_address || "",
       ]
         .map(sanitizeCsvCell)
         .join(",")
     );
 
     const titleLine = sanitizeCsvCell("CHUNAV SETU - INTERNAL CAMPAIGN OPERATIONAL REPORT (POLLING DAY TELEMETRY ONLY)");
-    const dateLine = sanitizeCsvCell(`Date: ${dashboardStats.pollingDay?.polling_date || "12 December 2026"} | Status: ${dashboardStats.pollingDay?.status || "LIVE"}`);
+    const dateLine = sanitizeCsvCell(`Date: ${dashboardStats.pollingDay?.election_date || dashboardStats.pollingDay?.polling_date || "Polling Day"} | Status: ${dashboardStats.pollingDay?.status || "LIVE"}`);
     const summaryLine = sanitizeCsvCell(`Summary: Total Voters: ${dashboardStats.totalVoters} | Status Reported: ${dashboardStats.statusReported} | Voting Reported: ${dashboardStats.votingActivityReported} | Pending: ${dashboardStats.pendingVoters} | Turnout Rate: ${dashboardStats.turnoutPercentage}%`);
 
     const csvOutput = [titleLine, dateLine, summaryLine, "", headerLine, ...rows].join("\r\n");
 
-    dbService.logAction(
+    await db.logAuditEvent(
       { id: session!.userId, name: session!.fullName },
       "POLLING_REPORT_EXPORTED",
       "Report",
       undefined,
-      { format: "CSV", booths: boothStats.length },
+      { format: "CSV", booths: booths.length },
       effectiveClientId
     );
 

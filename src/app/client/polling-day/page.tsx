@@ -95,7 +95,7 @@ export default function PollingDayDashboardPage() {
       if (data && data.pollingDay) {
         setConfigForm({
           title: data.pollingDay.title,
-          polling_date: data.pollingDay.polling_date,
+          polling_date: data.pollingDay.election_date || data.pollingDay.polling_date || "12 December 2026",
           start_time: data.pollingDay.start_time || "07:00 AM",
           end_time: data.pollingDay.end_time || "06:00 PM",
           total_target_voters: String(data.pollingDay.total_target_voters || 12450),
@@ -213,7 +213,7 @@ export default function PollingDayDashboardPage() {
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-extrabold text-[#212529] tracking-tight mt-1">
-            {stats.pollingDay?.polling_date || client?.election_date || "12 December 2026"} • {stats.pollingDay?.title || "General Election Polling Day"}
+            {stats.pollingDay?.election_date || stats.pollingDay?.polling_date || client?.election_date || "12 December 2026"} • {stats.pollingDay?.title || "General Election Polling Day"}
           </h1>
           <p className="text-xs sm:text-sm text-[#6C757D] mt-0.5">
             {client?.election_type} • {client?.location} • {boothsList.length} Booths Mapped
